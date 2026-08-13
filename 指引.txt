@@ -1,0 +1,1769 @@
+# StateGuard 核心项目实现指引
+
+## Phase I：仅实现本体方法，不进行 Baseline 与论文复现
+
+---
+
+## 0. 当前任务范围
+
+当前阶段只完成我们的核心研究方法：
+
+> **Verified Task State + Causal Fault Localization + Dependency-Aware Minimal Repair**
+
+本阶段不要进行：
+
+* GUI-SAGE 完整复现；
+* UI-Sentinel 三阶段训练复现；
+* OSWorld 正式实验；
+* AndroidWorld 正式实验；
+* DEVICESWORLD 正式实验；
+* baseline comparison；
+* Docker benchmark 部署；
+* Mentor / large-model escalation；
+* RL / self-distillation；
+* 大规模 online rollout。
+
+这些属于后续 Phase II / III。
+
+当前阶段的目标是：
+
+> 在不依赖真实 GUI benchmark 的情况下，把 StateGuard 的核心数据结构、状态更新、错误定位、依赖传播、局部修复接口和离线测试完整实现出来。
+
+---
+
+# 1. 项目研究背景
+
+项目关注 long-horizon GUI / computer-use agent 的纠错问题。
+
+DEVICESWORLD 的实验表明，当前 Agent 的失败并不只是单步 action 错误，还包括：
+
+* 漏掉必要 subgoal；
+* source / target device 或 location 混淆；
+* 最终结果存在但内容错误；
+* action 已经执行，但结果没有真正 persistence；
+* 多个设备或 endpoint 各自取得局部进展，但最终条件没有 jointly satisfied；
+* 局部失败后持续重复操作，无法识别真正的错误来源。
+
+论文的核心观察之一是：
+
+> **Local progress does not imply end-to-end completion.**
+
+GUI-SAGE 则主要研究：
+
+> 在 action 真正执行之前，Monitor 是否应该批准该 action、返回 corrective feedback，或者升级到更强 Mentor。
+
+其核心属于：
+
+> **pre-execution action-level verification / routing。**
+
+我们的项目不要退化成：
+
+```text
+GUI-SAGE + memory
+```
+
+或：
+
+```text
+action critic + retry
+```
+
+---
+
+# 2. 我们的核心 Research Question
+
+GUI-SAGE 主要回答：
+
+```text
+Should this proposed action be executed?
+```
+
+我们的项目回答：
+
+```text
+When execution becomes inconsistent with the task,
+which task-state dependency was first violated,
+which downstream progress is therefore no longer trustworthy,
+and what is the minimum repair required to restore consistency?
+```
+
+核心研究对象从：
+
+```text
+Action-level correction
+```
+
+提升为：
+
+```text
+Task-state-level causal repair
+```
+
+整个代码设计必须服务于：
+
+```text
+task inconsistency
+        ↓
+causal fault localization
+        ↓
+identify corrupted dependency
+        ↓
+invalidate affected descendants
+        ↓
+preserve unrelated verified progress
+        ↓
+minimal repair
+        ↓
+re-verification
+```
+
+---
+
+# 3. 项目核心 Hypotheses
+
+所有代码最终应该能够支持验证以下假设。
+
+## H1 — Causal Fault Localization
+
+显式维护 dependency-aware task state，是否能够比“检查最近一步 action”更准确地定位真正错误根因？
+
+---
+
+## H2 — Minimal Repair
+
+发生错误以后，能否只修复受影响的 task-state dependency，而不是重新执行整个任务或固定回退若干步？
+
+---
+
+## H3 — Progress Preservation
+
+发生错误以后，能否保留与错误无关、此前已经验证正确的执行进度？
+
+---
+
+## H4 — End-to-End Recoverability
+
+更准确的 fault localization 和更小的 repair scope，最终是否能够提高任务 recovery success？
+
+---
+
+# 4. 核心架构
+
+当前版本只允许一个新增智能模块：
+
+> `StateGuard`
+
+以及一个结构化数据状态：
+
+> `VerifiedTaskState`
+
+架构：
+
+```text
+                         Verified Task State
+                    ┌────────────────────────┐
+                    │ facts                  │
+                    │ subgoals               │
+                    │ dependencies           │
+                    │ evidence               │
+                    │ verification status    │
+                    └──────────▲─────────────┘
+                               │
+                          read / update
+                               │
+                               ▼
+Task ──→ Executor ──→ Action ──→ StateGuard ──→ Environment
+          ▲                       ▲                  │
+          │                       │                  │
+          │                       └── observation ───┘
+          │
+          └──────── Repair Target ──────────────────
+```
+
+当前阶段 Environment 使用 mock / replay implementation。
+
+不要实现：
+
+```text
+RiskAgent
+PreVerifierAgent
+TransitionAgent
+FaultAgent
+RepairAgent
+CommitAgent
+MentorAgent
+```
+
+这些如果未来需要，只能作为 StateGuard 内部功能或 extension。
+
+---
+
+# 5. StateGuard 的三项核心能力
+
+## 5.1 Verify
+
+根据：
+
+```text
+task state
+previous observation
+proposed action
+expected effect
+new observation
+```
+
+判断：
+
+```text
+VERIFIED
+CONTRADICTED
+UNKNOWN
+```
+
+不能只使用：
+
+```text
+correct / wrong
+```
+
+因为真实环境中经常无法从当前 observation 判断操作是否真正生效。
+
+例如：
+
+```text
+Click Save
+```
+
+并不能直接意味着：
+
+```text
+file saved successfully
+```
+
+必须重新获得 evidence。
+
+---
+
+## 5.2 Localize
+
+当出现 inconsistency 时，找到：
+
+> earliest violated task-state dependency / causal root
+
+例如：
+
+```text
+S1 acquire date            VERIFIED
+ ↓
+S2 open workbook           VERIFIED
+ ↓
+S3 select Sheet2           FAILED
+ ↓
+S4 write value             STALE
+ ↓
+S5 save file               STALE
+```
+
+如果最后发现值被写到了 Sheet1：
+
+```text
+fault_root = S3
+```
+
+而不是最近的：
+
+```text
+S5 save
+```
+
+---
+
+## 5.3 Repair Minimally
+
+当：
+
+```text
+fault_root = S3
+```
+
+系统只 invalidate：
+
+```text
+S3
++
+dependent descendants(S3)
+```
+
+而保留：
+
+```text
+independent VERIFIED nodes
+```
+
+StateGuard 本身不负责执行 repair GUI action。
+
+它只生成：
+
+```text
+RepairRequest
+```
+
+由原 Executor 完成实际修复。
+
+---
+
+# 6. 项目目录
+
+建立：
+
+```text
+stateguard_project/
+│
+├── stateguard/
+│   │
+│   ├── core/
+│   │   ├── schema.py
+│   │   ├── task_state.py
+│   │   ├── dependency_graph.py
+│   │   └── evidence.py
+│   │
+│   ├── compiler/
+│   │   ├── task_compiler.py
+│   │   └── validator.py
+│   │
+│   ├── guard/
+│   │   ├── state_guard.py
+│   │   ├── verifier.py
+│   │   ├── localization.py
+│   │   ├── repair.py
+│   │   ├── parser.py
+│   │   └── prompts.py
+│   │
+│   └── interfaces/
+│       ├── observation.py
+│       ├── action.py
+│       └── environment.py
+│
+├── replay/
+│   ├── replay_environment.py
+│   └── mock_environment.py
+│
+├── fault_injection/
+│   ├── injector.py
+│   ├── fault_types.py
+│   └── generators.py
+│
+├── eval/
+│   ├── localization_metrics.py
+│   ├── recovery_metrics.py
+│   └── progress_metrics.py
+│
+├── tests/
+│   ├── test_task_state.py
+│   ├── test_dependency_graph.py
+│   ├── test_invalidation.py
+│   ├── test_repair.py
+│   ├── test_fault_injection.py
+│   └── test_replay.py
+│
+├── examples/
+│   └── synthetic_tasks/
+│
+├── scripts/
+│   ├── run_mock_demo.py
+│   └── run_offline_eval.py
+│
+├── pyproject.toml
+└── README.md
+```
+
+---
+
+# 7. 核心 Schema
+
+## 7.1 NodeStatus
+
+实现：
+
+```python
+class NodeStatus(str, Enum):
+    PENDING = "pending"
+    ACTIVE = "active"
+    EXECUTED = "executed"
+    VERIFIED = "verified"
+    FAILED = "failed"
+    STALE = "stale"
+```
+
+必须严格区分：
+
+```text
+EXECUTED != VERIFIED
+```
+
+### 状态含义
+
+`PENDING`
+
+尚未开始。
+
+`ACTIVE`
+
+当前正在处理。
+
+`EXECUTED`
+
+已经执行相关 action，但没有充分 evidence 证明结果正确。
+
+`VERIFIED`
+
+有明确 evidence 支持当前 subgoal 已正确完成。
+
+`FAILED`
+
+当前 node 自身已经发现 contradiction。
+
+`STALE`
+
+node 自身结果未必错误，但其上游 dependency 已失效，因此不能继续认为它可信。
+
+---
+
+# 8. Evidence
+
+实现：
+
+```python
+@dataclass
+class Evidence:
+    step_id: int
+    source: str
+    description: str
+    confidence: float
+    observation_ref: str | None
+```
+
+每一个 `VERIFIED` node 必须至少存在一个 Evidence。
+
+禁止：
+
+```python
+node.status = VERIFIED
+```
+
+但：
+
+```python
+node.evidence == []
+```
+
+---
+
+# 9. TaskNode
+
+实现：
+
+```python
+@dataclass
+class TaskNode:
+    node_id: str
+    description: str
+
+    device: str | None
+    app: str | None
+
+    dependencies: list[str]
+
+    expected_result: str
+
+    status: NodeStatus
+
+    evidence: list[Evidence]
+
+    required: bool = True
+```
+
+后续允许扩展：
+
+```text
+source_role
+target_role
+consumers
+produced_facts
+required_facts
+```
+
+但 MVP 暂时不要过度设计。
+
+---
+
+# 10. VerifiedTaskState
+
+必须支持：
+
+```python
+get(node_id)
+
+mark_active(node_id)
+
+mark_executed(node_id)
+
+mark_verified(node_id, evidence)
+
+mark_failed(node_id)
+
+mark_stale(node_ids)
+
+verified_nodes()
+
+incomplete_required_nodes()
+
+can_finish()
+
+serialize()
+
+deserialize()
+```
+
+必须有合法状态迁移检查。
+
+例如：
+
+```text
+PENDING → ACTIVE
+ACTIVE → EXECUTED
+EXECUTED → VERIFIED
+EXECUTED → FAILED
+
+VERIFIED → STALE
+FAILED → ACTIVE
+STALE → ACTIVE
+```
+
+非法 transition 必须报错。
+
+---
+
+# 11. DependencyGraph
+
+不要让 LLM 自由决定 affected nodes。
+
+LLM / heuristic 只负责：
+
+```text
+fault_root
+```
+
+之后 downstream invalidation 必须使用 deterministic graph code：
+
+```python
+affected = graph.descendants(fault_root)
+```
+
+要求实现：
+
+```python
+parents(node)
+children(node)
+ancestors(node)
+descendants(node)
+topological_order()
+validate_acyclic()
+```
+
+---
+
+# 12. Fault Propagation
+
+如果：
+
+```text
+fault_root = S3
+```
+
+则：
+
+```text
+S3 → FAILED
+```
+
+其 descendants：
+
+```text
+VERIFIED
+EXECUTED
+ACTIVE
+```
+
+统一转为：
+
+```text
+STALE
+```
+
+不要直接全部：
+
+```text
+FAILED
+```
+
+因为 downstream node 不一定自身执行错误，只是其依据已经不可信。
+
+---
+
+# 13. Causal Root 定义
+
+当前版本采用：
+
+> The earliest task-state node whose expected condition is contradicted or unsupported while its prerequisite dependencies remain valid.
+
+候选节点必须优先满足：
+
+```text
+parents == VERIFIED
+```
+
+如果多个 candidate：
+
+优先选择：
+
+1. 有直接 contradiction 的 node；
+2. transition mismatch 明显的 node；
+3. 能解释最多 downstream failures 的 node；
+4. verified evidence 最弱的 node；
+5. 更靠近 failure source 的 node。
+
+第一版可以规则实现。
+
+后续再考虑 learned localizer。
+
+---
+
+# 14. ActionProposal
+
+定义 generic：
+
+```python
+@dataclass
+class ActionProposal:
+    subgoal_id: str
+    action: Any
+
+    intent: str
+
+    expected_effect: str
+
+    is_finish: bool = False
+```
+
+Environment 实际执行：
+
+```python
+env.step(proposal.action)
+```
+
+但 StateGuard 使用：
+
+```text
+subgoal_id
+intent
+expected_effect
+```
+
+理解 action 的任务语义。
+
+---
+
+# 15. RepairRequest
+
+实现：
+
+```python
+@dataclass
+class RepairRequest:
+    fault_root: str
+
+    error_type: str
+
+    goal: str
+
+    preserve_nodes: list[str]
+
+    stale_nodes: list[str]
+
+    reverify_nodes: list[str]
+
+    confidence: float
+```
+
+核心思想：
+
+```text
+不要重新生成整个任务计划。
+```
+
+只提供：
+
+```text
+repair target
+preserved progress
+states requiring re-verification
+```
+
+---
+
+# 16. FaultType
+
+MVP 实现：
+
+```python
+class FaultType(str, Enum):
+    MISSING_SUBGOAL = "missing_subgoal"
+    WRONG_TARGET = "wrong_target"
+    WRONG_VALUE = "wrong_value"
+    WRONG_FORMAT = "wrong_format"
+    NOT_PERSISTED = "not_persisted"
+    NO_EFFECT = "no_effect"
+    DEPENDENCY_VIOLATION = "dependency_violation"
+    PREMATURE_FINISH = "premature_finish"
+```
+
+---
+
+# 17. FINISH Rule
+
+不要设计额外 Global Commit Agent。
+
+实现：
+
+```python
+def can_finish(task_state):
+    return all(
+        node.status == NodeStatus.VERIFIED
+        for node in task_state.nodes.values()
+        if node.required
+    )
+```
+
+如果任何 required node：
+
+```text
+PENDING
+ACTIVE
+EXECUTED
+FAILED
+STALE
+```
+
+则：
+
+```text
+FINISH rejected
+```
+
+StateGuard 返回 missing / repair information。
+
+---
+
+# 18. Runtime 核心接口
+
+最终核心代码必须可以写成：
+
+```python
+task_state = compiler.compile(task)
+
+obs = env.reset()
+
+repair_context = None
+
+while True:
+
+    proposal = executor.act(
+        observation=obs,
+        task_state=task_state,
+        repair_context=repair_context,
+    )
+
+    if proposal.is_finish:
+
+        result = guard.verify_finish(
+            task_state=task_state,
+            observation=obs,
+        )
+
+        if result.approved:
+            break
+
+        repair_context = result.repair
+        continue
+
+    before = obs
+
+    after = env.step(proposal.action)
+
+    result = guard.verify_transition(
+        task_state=task_state,
+        before=before,
+        proposal=proposal,
+        after=after,
+    )
+
+    task_state.apply(result.state_updates)
+
+    if result.requires_repair:
+        repair_context = result.repair
+    else:
+        repair_context = None
+
+    obs = after
+```
+
+整个项目未来无论如何扩展，都尽量不要破坏这个 API。
+
+---
+
+# 19. StateGuard 输出 Schema
+
+统一输出：
+
+```json
+{
+  "judgement": "verified | contradicted | unknown",
+
+  "progress_updates": [],
+
+  "fault_root": null,
+
+  "fault_type": null,
+
+  "repair": null
+}
+```
+
+错误情况：
+
+```json
+{
+  "judgement": "contradicted",
+
+  "fault_root": "S3",
+
+  "fault_type": "wrong_target",
+
+  "repair": {
+    "goal": "Select Sheet2 and re-apply the previously verified value.",
+    "preserve_nodes": ["S1", "S2"],
+    "reverify_nodes": ["S4", "S5"]
+  }
+}
+```
+
+Affected descendants 最终必须由 Python graph 自动计算。
+
+---
+
+# 20. UNKNOWN 状态处理
+
+如果：
+
+```text
+action executed
+```
+
+但无法确认 effect：
+
+```text
+judgement = UNKNOWN
+```
+
+不要：
+
+```text
+mark VERIFIED
+```
+
+也不要立刻：
+
+```text
+mark FAILED
+```
+
+而应该产生：
+
+```text
+verification target
+```
+
+例如：
+
+```text
+Re-open the saved file to confirm persistence.
+```
+
+这一机制后续可用于解决“action 已发出但结果未真正保存”的问题。
+
+---
+
+# 21. TaskCompiler
+
+当前阶段先实现两种方式。
+
+## A. Manual Synthetic Compiler
+
+用于 unit test：
+
+```python
+compile_from_spec(...)
+```
+
+---
+
+## B. LLM Compiler Interface
+
+定义接口：
+
+```python
+compile_from_instruction(
+    instruction,
+    available_devices=None,
+)
+```
+
+当前阶段可以使用 mock/stub。
+
+主要目标是固定输出 schema。
+
+必须进行 deterministic validation：
+
+```text
+unique node ids
+dependency exists
+graph acyclic
+required fields exist
+valid device ids
+```
+
+---
+
+# 22. 禁止 Evaluation Leakage
+
+Runtime StateGuard 不允许访问：
+
+```text
+benchmark hidden verifier
+gold trajectory
+gold final state
+private evaluator
+future observations
+```
+
+未来如果使用这些信息，只能用于：
+
+```text
+offline annotation
+training labels
+research diagnostics
+```
+
+代码目录必须明确区分：
+
+```text
+runtime/
+offline_labeling/
+```
+
+---
+
+# 23. ReplayEnvironment
+
+必须实现：
+
+```python
+class ReplayEnvironment:
+    reset()
+    observe()
+    step(action)
+```
+
+输入：
+
+```text
+saved trajectory
++
+saved observations
+```
+
+用于：
+
+> 在没有 Docker / OSWorld / AndroidWorld 的开发服务器上调试 StateGuard。
+
+它将成为后续双服务器开发模式的重要接口。
+
+---
+
+# 24. MockEnvironment
+
+实现简单 symbolic 环境。
+
+例如任务：
+
+```text
+S1 get OTP
+S2 get email
+S3 fill form
+S4 submit
+```
+
+Environment state：
+
+```python
+{
+    "otp": None,
+    "email": None,
+    "form": {},
+    "submitted": False
+}
+```
+
+允许 action：
+
+```text
+read_otp
+read_email
+fill_email
+fill_otp
+submit
+```
+
+用于测试完整：
+
+```text
+execute
+→ fail
+→ localize
+→ invalidate
+→ repair
+→ reverify
+```
+
+闭环。
+
+---
+
+# 25. Synthetic Fault Injection
+
+当前 Phase I 必须完成。
+
+从正常 trajectory 注入：
+
+### Wrong Target
+
+```text
+Sheet2 → Sheet1
+device_1 → device_0
+```
+
+### Wrong Value
+
+```text
+483921 → 483291
+```
+
+### Missing Subgoal
+
+跳过必要步骤。
+
+### No Effect
+
+action 发出但 environment state 不变化。
+
+### Not Persisted
+
+表面执行成功，但 state 中结果不存在。
+
+### Premature Finish
+
+仍有 incomplete node 时申请 FINISH。
+
+### Dependency Violation
+
+downstream 使用已经 stale 的信息。
+
+---
+
+# 26. Ground Truth
+
+每个 injected failure 必须保存：
+
+```json
+{
+  "fault_type": "wrong_target",
+
+  "fault_root": "S3",
+
+  "affected_nodes": [
+    "S3",
+    "S4",
+    "S5"
+  ],
+
+  "preservable_nodes": [
+    "S1",
+    "S2"
+  ]
+}
+```
+
+---
+
+# 27. 当前阶段 Metrics
+
+即使还没有 baseline，也要实现 metric API。
+
+## Fault Localization Accuracy
+
+```text
+predicted root == ground-truth root
+```
+
+---
+
+## Affected Set Precision / Recall / F1
+
+比较：
+
+```text
+predicted affected subgraph
+vs
+ground truth
+```
+
+---
+
+## Progress Preservation Rate
+
+```text
+preserved verified nodes
+/
+verified nodes before failure
+```
+
+---
+
+## Repair Radius
+
+至少提供两种统计：
+
+```text
+number of reactivated task nodes
+```
+
+以及：
+
+```text
+number of repair actions
+```
+
+---
+
+## Recovery Success
+
+Synthetic environment 中：
+
+```text
+failure injected
+→ repair
+→ all required nodes VERIFIED
+```
+
+则 success。
+
+---
+
+## False Intervention Rate
+
+对没有注错的 successful trajectory：
+
+```text
+StateGuard incorrectly reports contradiction
+```
+
+的比例。
+
+这个指标必须保留。
+
+---
+
+# 28. Logging
+
+每个 episode 输出：
+
+```text
+run/
+├── task.json
+├── task_state_initial.json
+├── task_state_final.json
+├── trajectory.jsonl
+├── guard_events.jsonl
+├── repair_events.jsonl
+└── metrics.json
+```
+
+每步记录：
+
+```json
+{
+  "step": 5,
+
+  "proposal": {},
+
+  "state_before": {},
+
+  "observation_before": {},
+
+  "observation_after": {},
+
+  "guard_result": {},
+
+  "state_updates": {}
+}
+```
+
+---
+
+# 29. Unit Tests
+
+必须覆盖。
+
+## Graph
+
+```text
+parents
+children
+ancestors
+descendants
+acyclic validation
+```
+
+## Status transitions
+
+合法 / 非法状态迁移。
+
+## Evidence requirement
+
+`VERIFIED` node 必须有 evidence。
+
+## Failure propagation
+
+```text
+root FAILED
+descendants STALE
+independent VERIFIED preserved
+```
+
+## Finish rule
+
+任何 incomplete required node 都不能 FINISH。
+
+## Repair scope
+
+只重新 activate affected nodes。
+
+## Serialization
+
+state 保存和恢复一致。
+
+---
+
+# 30. 第一批 Synthetic Tasks
+
+至少设计 10 个。
+
+包含：
+
+### Linear
+
+```text
+S1 → S2 → S3 → S4
+```
+
+### Branching
+
+```text
+       S1
+      /  \
+    S2    S3
+      \  /
+       S4
+```
+
+### Independent branches
+
+```text
+S1 → S2
+
+S3 → S4
+```
+
+故意让 S2 出错，必须证明：
+
+```text
+S3 / S4 不受影响。
+```
+
+### Multi-source
+
+```text
+S1 ─┐
+    ├→ S3
+S2 ─┘
+```
+
+### Multi-output
+
+```text
+      ┌→ S4
+S3 ───┤
+      └→ S5
+```
+
+---
+
+# 31. 当前阶段的关键 Demo
+
+必须最终能够运行：
+
+```bash
+python scripts/run_mock_demo.py
+```
+
+展示：
+
+```text
+Task initialized
+
+S1 VERIFIED
+S2 VERIFIED
+S3 ACTIVE
+S4 PENDING
+
+Injected fault:
+S3 WRONG_TARGET
+
+StateGuard:
+fault_root = S3
+
+State update:
+S3 FAILED
+S4 STALE
+
+Preserved:
+S1, S2
+
+Repair target:
+Restore S3 without repeating S1/S2
+
+Repair executed
+
+S3 VERIFIED
+S4 VERIFIED
+
+Task complete
+```
+
+这是 Phase I 最重要的功能 demo。
+
+---
+
+# 32. 开发服务器规则
+
+当前开发模式：
+
+> **只有 Server 1 编辑代码。**
+
+Server 1 是唯一：
+
+```text
+source-code authoring environment
+```
+
+所有：
+
+```text
+code changes
+tests
+prompts
+configs
+training code
+evaluation scripts
+```
+
+都在 Server 1 修改。
+
+---
+
+# 33. Server 2 当前不属于 Phase I
+
+未来 Server 2 用于：
+
+```text
+Docker
+OSWorld
+AndroidWorld
+online rollout
+parallel evaluation
+```
+
+但当前阶段不要依赖 Server 2 才能完成核心测试。
+
+目标是：
+
+```text
+Server 1 alone
+```
+
+可以完成：
+
+```text
+all core unit tests
+mock execution
+replay execution
+fault injection
+causal localization
+minimal repair
+offline metrics
+```
+
+---
+
+# 34. Git Policy
+
+所有正式修改：
+
+```text
+edit on Server 1
+↓
+test
+↓
+commit
+↓
+push
+```
+
+未来 Server 2：
+
+```text
+git pull / checkout
+```
+
+原则上不直接修改研究代码。
+
+每个正式实验以后都必须记录：
+
+```text
+git commit hash
+```
+
+---
+
+# 35. Benchmark Independence
+
+核心目录：
+
+```text
+stateguard/
+```
+
+禁止直接：
+
+```python
+import osworld
+import androidworld
+```
+
+未来 benchmark-specific code 必须放：
+
+```text
+integrations/
+```
+
+通过 generic interface：
+
+```python
+EnvironmentAdapter
+```
+
+连接。
+
+---
+
+# 36. Phase I Milestones
+
+## Milestone 1
+
+Core schema：
+
+```text
+NodeStatus
+Evidence
+TaskNode
+VerifiedTaskState
+```
+
+Acceptance：
+
+```bash
+pytest tests/test_task_state.py
+```
+
+全部通过。
+
+---
+
+## Milestone 2
+
+DependencyGraph。
+
+Acceptance：
+
+```text
+parents / descendants / DAG validation correct
+```
+
+---
+
+## Milestone 3
+
+Deterministic failure propagation。
+
+Acceptance：
+
+```text
+root FAILED
+affected descendants STALE
+independent VERIFIED preserved
+```
+
+---
+
+## Milestone 4
+
+RepairRequest。
+
+Acceptance：
+
+能够根据：
+
+```text
+fault root
+```
+
+生成：
+
+```text
+preserve
+stale
+reverify
+repair goal
+```
+
+---
+
+## Milestone 5
+
+MockEnvironment。
+
+Acceptance：
+
+正常任务可以完整执行。
+
+---
+
+## Milestone 6
+
+Fault Injection。
+
+Acceptance：
+
+至少六类 synthetic failure 可复现。
+
+---
+
+## Milestone 7
+
+StateGuard interface。
+
+Acceptance：
+
+支持：
+
+```python
+verify_transition()
+verify_finish()
+```
+
+---
+
+## Milestone 8
+
+Causal Fault Localization。
+
+Acceptance：
+
+在 synthetic dataset 上输出：
+
+```text
+fault root
+fault type
+```
+
+---
+
+## Milestone 9
+
+Minimal repair loop。
+
+Acceptance：
+
+完成：
+
+```text
+failure
+→ localization
+→ invalidation
+→ repair
+→ re-verification
+```
+
+---
+
+## Milestone 10
+
+Offline evaluation。
+
+Acceptance：
+
+自动输出：
+
+```text
+Localization Accuracy
+Affected Set F1
+Recovery Success
+Progress Preservation
+Repair Radius
+False Intervention
+```
+
+---
+
+# 37. Phase I 明确禁止做的事情
+
+在上述 Milestone 完成前，不要：
+
+* 搭 OSWorld Docker；
+* 复现 GUI-SAGE；
+* 实现 UI-Sentinel；
+* 实现 Mentor；
+* 训练 9B StateGuard；
+* 上 RL；
+* 做大型 benchmark；
+* 把整个方法拆成 Multi-Agent 系统；
+* 实现复杂 World Model；
+* 引入 benchmark hidden verifier；
+* 为了某一个 benchmark 修改核心 StateGuard schema。
+
+---
+
+# 38. Phase I 完成标准
+
+只有同时满足以下条件才能认为本体项目完成：
+
+### Core correctness
+
+```text
+all unit tests pass
+```
+
+### Causal localization
+
+Synthetic fault 能正确定位 root。
+
+### Dependency propagation
+
+受影响 subgraph 正确失效。
+
+### Progress preservation
+
+无关 VERIFIED nodes 不被重做。
+
+### Repair
+
+能够生成局部 repair target。
+
+### Closed-loop recovery
+
+Mock environment 能：
+
+```text
+inject failure
+→ recover
+→ finish
+```
+
+### Offline reproducibility
+
+同一输入得到相同 task-state / graph-level结果。
+
+### Benchmark independence
+
+没有 OSWorld / AndroidWorld dependency。
+
+---
+
+# 39. Phase I 结束后的下一步
+
+Phase I 完成后再进入新的任务文档。
+
+届时才讨论：
+
+```text
+Baseline design
+Reproduction
+OSWorld
+AndroidWorld
+Docker
+GUI-SAGE comparison
+fixed-k backtracking
+latest-action retry
+action-level critic
+natural failures
+lightweight StateGuard training
+```
+
+当前 Agent 不要提前实现。
+
+---
+
+# 40. 最终原则
+
+整个 Phase I 的核心不是：
+
+> build a powerful GUI agent
+
+而是：
+
+> **build a clean, testable task-state repair mechanism.**
+
+始终围绕三个概念：
+
+```text
+1. Fault Localization
+2. Progress Preservation
+3. Minimal Repair
+```
+
+如果某项功能不能直接帮助这三件事，暂时不要加入。
+
+最终系统应该能够用一句话描述：
+
+> **StateGuard maintains an explicit verified task state, identifies the earliest violated dependency when execution becomes inconsistent, invalidates only the downstream progress affected by that violation, and provides a minimal repair target while preserving independent verified progress.**
