@@ -15,6 +15,8 @@ def validate_spec(spec: dict, available_devices: list[str] | None = None) -> Non
     nodes = spec.get("nodes", [])
     if not nodes:
         errors.append("spec has no nodes")
+    if nodes and not any(n.get("required", True) for n in nodes):
+        errors.append("spec has no required nodes")
 
     ids = [n["node_id"] for n in nodes]
     if len(set(ids)) != len(ids):
@@ -27,8 +29,8 @@ def validate_spec(spec: dict, available_devices: list[str] | None = None) -> Non
             continue
         if not n.get("description"):
             errors.append(f"node {n.get('node_id')}: description is required")
-        if not n.get("expected_result"):
-            errors.append(f"node {n.get('node_id')}: expected_result is required")
+        if not (n.get("expected_result") or n.get("expected_result_semantic")):
+            errors.append(f"node {n.get('node_id')}: expected result is required")
         if n.get("dependencies") is None:
             errors.append(f"node {n['node_id']}: dependencies is required")
         for d in n.get("dependencies", []):

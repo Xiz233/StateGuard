@@ -90,3 +90,12 @@ Every episode writes under `run/<episode>/`: `task.json`,
   component (`examples/synthetic_tasks/spec_executor.py`).
 - Declarative action effects (`{var: literal|"@param"}`) instead of a world model.
 - `graphlib.TopologicalSorter` from the stdlib for topological order/cycles.
+
+## Phase II-A readiness
+
+The Phase-I rule path remains intact. Phase II-A adds multimodal `Observation`, an
+OpenAI-compatible model client, hybrid visual Guard, manual DAG loading, a GUI
+Executor, bounded autonomous repair, and a lazy OSWorld adapter. Copy
+`configs/models.example.yaml` to `configs/models.yaml`; keep credentials only in the
+environment. Run `python scripts/check_readiness.py` before an external PoC. Qwen
+weights and OSWorld are intentionally not installed by this repository.

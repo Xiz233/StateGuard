@@ -22,10 +22,11 @@ from .repair import propagate_failure, build_repair_request
 
 
 class StateGuard:
-    def __init__(self):
+    def __init__(self, backend=None):
         # ponytail: rule-based only in Phase I; swap per prompts.py when
         # learned versions land.
         self.localize = causal_root
+        self.backend = backend
 
     def verify_transition(self, task_state: VerifiedTaskState,
                           before: Observation, proposal: ActionProposal,
@@ -56,7 +57,24 @@ class StateGuard:
 
         updates = self._start_updates(node)
 
-        verdict = _verify(node, proposal, before, after)
+        verdict = (self.backend.verify(task_state, before, proposal, after)
+                   if self.backend else _verify(node, proposal, before, after))
+
+        if self.backend and verdict.judgement == "contradicted":
+            root = verdict.fault_root or node.node_id
+            projected = self._project(task_state, updates)
+            return self._contradicted(projected, DependencyGraph.from_state(projected),
+                                      root, updates, verdict.fault_type or FaultType.NO_EFFECT.value)
+        if self.backend and verdict.judgement == "verified":
+            evidence_text = next((u.get("evidence") for u in verdict.progress_updates
+                                  if u.get("node_id") == node.node_id), verdict.reason)
+            from ..core.schema import Evidence
+            evidence = Evidence(after.step, "guard_model", evidence_text or node.description,
+                                0.8, after.ref)
+            updates.append({"op": "verify", "node_id": node.node_id,
+                            "evidence": evidence.to_dict()})
+            return GuardResult("verified", progress_updates=verdict.progress_updates,
+                               state_updates=updates, reason=verdict.reason)
 
         if verdict.judgement == "unknown":
             hit = self._sweep(self._project(task_state, updates), after)

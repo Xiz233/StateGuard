@@ -1,7 +1,8 @@
-"""Generic Observation: a snapshot dict plus dotted-path access."""
+"""Provider-neutral symbolic or multimodal observation."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -25,20 +26,52 @@ def set_path(snapshot: dict, path: str, value: Any) -> None:
     cur[parts[-1]] = value
 
 
+@dataclass(init=False)
 class Observation:
-    def __init__(self, snapshot: dict, step: int):
-        self.snapshot: dict = snapshot
-        self.step: int = step
+    step: int
+    screenshot: str | bytes | None
+    structured_state: dict | None
+    ui_tree: dict | list | str | None
+    visible_text: str | None
+    active_app: str | None
+    metadata: dict
+
+    def __init__(self, snapshot: dict | None = None, step: int = 0, *,
+                 screenshot: str | bytes | None = None,
+                 structured_state: dict | None = None,
+                 ui_tree: dict | list | str | None = None,
+                 visible_text: str | None = None,
+                 active_app: str | None = None,
+                 metadata: dict | None = None):
+        self.step = step
+        self.screenshot = screenshot
+        self.structured_state = structured_state if structured_state is not None else snapshot
+        self.ui_tree = ui_tree
+        self.visible_text = visible_text
+        self.active_app = active_app
+        self.metadata = dict(metadata or {})
+
+    @property
+    def snapshot(self) -> dict:
+        return self.structured_state or {}
 
     def get(self, path: str) -> Any:
         return get_path(self.snapshot, path)
 
     def to_dict(self) -> dict:
-        return {"step": self.step, "snapshot": self.snapshot}
+        return {"step": self.step, "screenshot": self.screenshot,
+                "structured_state": self.structured_state, "ui_tree": self.ui_tree,
+                "visible_text": self.visible_text, "active_app": self.active_app,
+                "metadata": self.metadata}
 
     @classmethod
     def from_dict(cls, d: dict) -> "Observation":
-        return cls(d["snapshot"], d.get("step", 0))
+        if "structured_state" not in d and "snapshot" in d:
+            return cls(d["snapshot"], d.get("step", 0))
+        return cls(step=d.get("step", 0), screenshot=d.get("screenshot"),
+                   structured_state=d.get("structured_state"), ui_tree=d.get("ui_tree"),
+                   visible_text=d.get("visible_text"), active_app=d.get("active_app"),
+                   metadata=d.get("metadata"))
 
     @property
     def ref(self) -> str:

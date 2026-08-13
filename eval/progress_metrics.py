@@ -19,3 +19,11 @@ def repair_radius_stats(reactivated_counts: list[int],
         "reactivated_nodes_mean": mean(reactivated_counts),
         "repair_actions_mean": mean(repair_action_counts),
     }
+
+
+def operational_metrics(total_steps=0, model_calls=0, guard_tokens=0,
+                        executor_tokens=0, guard_latency=0.0,
+                        executor_latency=0.0) -> dict:
+    return dict(total_steps=total_steps, model_calls=model_calls,
+                guard_tokens=guard_tokens, executor_tokens=executor_tokens,
+                guard_latency=guard_latency, executor_latency=executor_latency)

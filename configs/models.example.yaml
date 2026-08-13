@@ -1,0 +1,18 @@
+providers:
+  stateguard_api:
+    type: openai_compatible
+    base_url: ${STATEGUARD_BASE_URL}
+    api_key_env: STATEGUARD_API_KEY
+    model: ${STATEGUARD_MODEL}
+  executor_qwen:
+    type: openai_compatible
+    base_url: ${EXECUTOR_BASE_URL}
+    api_key_env: EXECUTOR_API_KEY
+    model: Qwen3-VL-32B-Instruct
+roles:
+  stateguard: {provider: stateguard_api}
+  task_compiler: {provider: stateguard_api, enabled_for_poc: false}
+  executor: {provider: executor_qwen}
+runtime:
+  max_total_steps: 50
+  max_repair_cycles_per_fault: 3

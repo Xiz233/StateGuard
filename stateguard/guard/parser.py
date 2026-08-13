@@ -12,6 +12,7 @@ import re
 from typing import Any
 
 from ..interfaces.observation import get_path
+from ..core.schema import GuardResult, FaultType
 
 _PRED = re.compile(r"^([A-Za-z_][\w.]*)\s*(==|!=)\s*(.+)$")
 _SET = re.compile(r"^([A-Za-z_][\w.]*)\s+(set|unset)$")
@@ -86,3 +87,21 @@ def check_effect(resolved: dict[str, Any], snapshot: dict) -> str:
         if actual != expected:
             return "mismatch"
     return "matched"
+
+
+def parse_guard_output(data: dict | None) -> GuardResult:
+    if not isinstance(data, dict):
+        raise ValueError("guard output must be a JSON object")
+    judgement = str(data.get("judgement", "")).lower()
+    if judgement not in {"verified", "contradicted", "unknown"}:
+        raise ValueError(f"invalid guard judgement {judgement!r}")
+    updates = data.get("progress_updates", [])
+    if not isinstance(updates, list):
+        raise ValueError("progress_updates must be a list")
+    root, fault = data.get("fault_root"), data.get("fault_type")
+    if judgement == "contradicted":
+        if not root or fault not in {item.value for item in FaultType}:
+            raise ValueError("contradiction requires valid fault_root and fault_type")
+    return GuardResult(judgement, progress_updates=updates, fault_root=root,
+                       fault_type=fault, verification_target=data.get("verification_target"),
+                       reason=str(data.get("reason", "")))

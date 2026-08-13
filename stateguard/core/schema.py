@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass, field, asdict
-from typing import Any
+from typing import Any, Literal
 
 
 class NodeStatus(str, enum.Enum):
@@ -46,6 +46,9 @@ class TaskNode:
     status: NodeStatus = NodeStatus.PENDING
     evidence: list[Evidence] = field(default_factory=list)
     required: bool = True
+    expected_result_semantic: str | None = None
+    structured_predicate: dict | None = None
+    evidence_mode: Literal["structured", "visual", "persistence", "hybrid"] = "visual"
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -121,6 +124,7 @@ class GuardResult:
     state_updates: list[dict] = field(default_factory=list)
     approved: bool = False
     verification_target: str | None = None
+    reason: str = ""
 
     @property
     def requires_repair(self) -> bool:
@@ -136,5 +140,6 @@ class GuardResult:
             "state_updates": self.state_updates,
             "approved": self.approved,
             "verification_target": self.verification_target,
+            "reason": self.reason,
         }
         return d

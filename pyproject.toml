@@ -7,11 +7,11 @@ name = "stateguard"
 version = "0.1.0"
 description = "Verified task state + causal fault localization + dependency-aware minimal repair"
 requires-python = ">=3.9"
-dependencies = []
+dependencies = ["PyYAML>=6"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["stateguard*", "replay*", "fault_injection*", "eval*"]
+include = ["stateguard*", "replay*", "fault_injection*", "eval*", "integrations*", "experiments*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

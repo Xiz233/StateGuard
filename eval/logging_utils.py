@@ -17,9 +17,10 @@ from pathlib import Path
 
 
 class EpisodeLogger:
-    def __init__(self, run_dir: str, episode: str):
-        self.dir = Path(run_dir) / episode
+    def __init__(self, run_dir: str, episode: str, run_id: str | None = None):
+        self.dir = Path(run_dir) / run_id / episode if run_id else Path(run_dir) / episode
         self.dir.mkdir(parents=True, exist_ok=True)
+        (self.dir / "screenshots").mkdir(exist_ok=True)
 
     def write(self, name: str, obj) -> None:
         with open(self.dir / name, "w") as f:
@@ -31,7 +32,12 @@ class EpisodeLogger:
 
     def log_task(self, spec: dict, state) -> None:
         self.write("task.json", spec)
+        self.write("task_graph.json", state.serialize())
         self.write("task_state_initial.json", state.serialize())
+
+    def log_metadata(self, metadata: dict) -> None:
+        forbidden = {k for k in metadata if "key" in k.lower() or "secret" in k.lower()}
+        self.write("metadata.json", {k: v for k, v in metadata.items() if k not in forbidden})
 
     def log_step(self, step: int, proposal, state_before, obs_before, obs_after,
                  guard_result, state_updates) -> None:
@@ -61,3 +67,4 @@ class EpisodeLogger:
     def finish(self, state, metrics: dict) -> None:
         self.write("task_state_final.json", state.serialize())
         self.write("metrics.json", metrics)
+        self.write("result.json", {"task_state": state.serialize(), "metrics": metrics})
