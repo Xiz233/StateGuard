@@ -6,6 +6,8 @@ All experiment code and contracts are complete and validated end-to-end against 
 fake backend. The only remaining blockers are external model endpoints and real
 OSWorld/OSWorld-Verified deployment.
 
+Phase II-B implementation commit: `5636309f8b0442686e95fa24b8c8190c3d078c5d`.
+
 ## Architecture and changed areas
 
 - Typed/bounded GUI action validation and one-retry Executor/Guard parsing.
