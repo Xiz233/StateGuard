@@ -101,6 +101,7 @@ class RepairRequest:
     stale_nodes: list[str] = field(default_factory=list)
     reverify_nodes: list[str] = field(default_factory=list)
     confidence: float = 0.0
+    repair_cycle_id: int | None = None
 
     def to_dict(self) -> dict:
         d = asdict(self)

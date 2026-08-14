@@ -79,3 +79,12 @@ class OSWorldAdapter(EnvironmentAdapter):
         if hasattr(self.backend, "close"): self.backend.close()
     def health_check(self): return self.backend.health_check() if hasattr(self.backend, "health_check") else True
     def backend_info(self): return self.backend.backend_info() if hasattr(self.backend, "backend_info") else {"name": type(self.backend).__name__}
+
+    def note_fault_injection(self, event, spec):
+        if hasattr(self.backend, "note_fault_injection"):
+            self.backend.note_fault_injection(event, spec)
+
+    def expose_failure(self, event):
+        if hasattr(self.backend, "expose_failure"):
+            self.backend.expose_failure(event)
+        return self.observe()

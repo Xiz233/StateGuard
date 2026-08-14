@@ -42,6 +42,15 @@ class RunLogger:
 
     def summarize(self, results):
         rows = [r.to_dict() for r in results]
+        validity_fields = (
+            "fault_injected_step", "failure_exposed_step", "guard_first_detection_step",
+            "guard_detection_delay", "early_detection", "first_root_prediction",
+            "eventual_root_prediction", "first_root_accuracy", "eventual_root_accuracy",
+            "repair_cycle_count", "repair_action_count", "preservable_nodes",
+            "actually_preserved_nodes", "reexecuted_preserved_nodes",
+            "state_preservation_rate", "strict_progress_preservation_rate",
+            "guard_intervention_count", "certified_clean", "false_intervention_episode",
+            "false_intervention_event_count")
         summary = {"episodes": len(rows),
                    "task_success_rate": sum(r["success"] for r in rows) / len(rows) if rows else 0,
                    "recovery_success_rate": sum(r["success"] and bool(r["fault_events"]) for r in rows)
@@ -53,22 +62,31 @@ class RunLogger:
         fault_rows = [r for r in rows if r["fault_events"]]
         clean_rows = [r for r in rows if not r["fault_events"]]
         summary.update({
-            "root_localization_accuracy": (sum(r["metrics"].get("root_localization_accuracy", 0)
-                                                for r in fault_rows) / len(fault_rows)
-                                            if fault_rows else 0),
+            "first_root_accuracy": (sum(r["first_root_accuracy"] for r in fault_rows)
+                                    / len(fault_rows) if fault_rows else 0),
+            "eventual_root_accuracy": (sum(r["eventual_root_accuracy"] for r in fault_rows)
+                                       / len(fault_rows) if fault_rows else 0),
             "affected_set_f1": (sum(r["metrics"].get("affected_set_f1", 0) for r in fault_rows)
                                 / len(fault_rows) if fault_rows else 0),
-            "progress_preservation_rate": (sum(r["metrics"].get("progress_preservation_rate", 1)
-                                                for r in fault_rows) / len(fault_rows)
-                                            if fault_rows else 1),
-            "false_intervention_rate": (sum(bool(r["root_predictions"]) for r in clean_rows)
-                                        / len(clean_rows) if clean_rows else 0),
+            "state_preservation_rate": (sum(r["state_preservation_rate"] for r in fault_rows)
+                                        / len(fault_rows) if fault_rows else 1),
+            "strict_progress_preservation_rate": (
+                sum(r["strict_progress_preservation_rate"] for r in fault_rows) / len(fault_rows)
+                if fault_rows else 1),
+            "false_intervention_rate": (
+                sum(r["false_intervention_episode"] for r in clean_rows if r["certified_clean"])
+                / max(1, sum(r["certified_clean"] for r in clean_rows))),
             "repair_radius": sum(r["metrics"].get("repair_radius", 0) for r in rows),
-            "repair_action_count": sum(r["metrics"].get("repair_action_count", 0) for r in rows),
+            "repair_cycle_count": sum(r["repair_cycle_count"] for r in rows),
+            "repair_action_count": sum(r["repair_action_count"] for r in rows),
+            "guard_intervention_count": sum(r["guard_intervention_count"] for r in rows),
+            "episode_validity": [{"status": r["status"],
+                                  **{key: r[key] for key in validity_fields}} for r in rows],
         })
         self.write(self.dir / "summary.json", summary)
         if rows:
-            flat = [{k: v for k, v in r.items() if not isinstance(v, (dict, list))} for r in rows]
+            flat = [{k: json.dumps(v, sort_keys=True) if isinstance(v, (dict, list)) else v
+                     for k, v in r.items()} for r in rows]
             with (self.dir / "results.csv").open("w", newline="", encoding="utf-8") as handle:
                 writer = csv.DictWriter(handle, flat[0]); writer.writeheader(); writer.writerows(flat)
         return summary
@@ -86,19 +104,25 @@ class EpisodeLogger:
         with (self.dir / name).open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(value, default=str) + "\n")
 
-    def log_step(self, step, state, proposal, fault, executed, before, after, guard, repair):
+    def log_step(self, step, state, proposal, fault, exposure, executed, execution_phase,
+                 repair_cycle_id, before, after, guard, repair, interventions):
         row = {"step": step, "task_state_before": state,
                "executor_proposal": proposal.to_dict(),
                "injected_fault": fault.to_dict() if fault else None,
+               "failure_exposure": exposure.to_dict() if exposure else None,
                "executed_action": executed,
+               "execution_phase": execution_phase,
+               "repair_cycle_id": repair_cycle_id,
                "observation_before": before.to_dict(), "observation_after": after.to_dict(),
                "guard_result": guard.to_dict() if guard else None,
                "state_updates": guard.state_updates if guard else [],
-               "repair_context": repair.to_dict() if hasattr(repair, "to_dict") else repair}
+               "repair_context": repair.to_dict() if hasattr(repair, "to_dict") else repair,
+               "interventions": [event.to_dict() for event in interventions]}
         self.append("trajectory.jsonl", row)
         self.append("executor_events.jsonl", {"step": step, "proposal": proposal.to_dict()})
         if guard: self.append("guard_events.jsonl", {"step": step, **guard.to_dict()})
-        if repair: self.append("repair_events.jsonl", {"step": step, "repair": row["repair_context"]})
+        if guard and guard.repair:
+            self.append("repair_events.jsonl", {"step": step, "repair": guard.repair.to_dict()})
 
     def finish(self, result):
         RunLogger.write(self.dir / "model_usage.json", {

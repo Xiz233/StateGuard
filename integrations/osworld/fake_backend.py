@@ -11,14 +11,20 @@ class FakeOSWorldBackend:
     def __init__(self, screenshot_dir: str | None = None):
         self.screenshot_dir = Path(screenshot_dir) if screenshot_dir else None
         self.task, self.state, self.step = {}, {}, 0
+        self.fault_spec, self.hidden_baseline, self.failure_exposed = None, {}, False
 
     def reset(self, task_spec):
         self.task, self.state, self.step = task_spec, deepcopy(task_spec.get("initial_state", {})), 0
+        self.hidden_baseline, self.failure_exposed = {}, False
         return self.get_observation()
 
     def get_observation(self):
-        return {"structured_state": deepcopy(self.state),
-                "visible_text": "; ".join(f"{k}={v}" for k, v in sorted(self.state.items())),
+        visible = deepcopy(self.state)
+        if self.fault_spec and self.fault_spec.get("exposure", {}).get("mode") == "latent" \
+                and not self.failure_exposed:
+            visible.update(self.hidden_baseline)
+        return {"structured_state": visible,
+                "visible_text": "; ".join(f"{k}={v}" for k, v in sorted(visible.items())),
                 "active_app": self.task.get("app", "fake"),
                 "screenshot": self._screenshot(), "metadata": {"fake": True}}
 
@@ -34,6 +40,15 @@ class FakeOSWorldBackend:
         expected = task_spec.get("success_state", {})
         success = all(self.state.get(k) == v for k, v in expected.items())
         return EvaluationResult(success, float(success), {"state": deepcopy(self.state)})
+
+    def note_fault_injection(self, event, spec):
+        self.fault_spec = spec
+        if spec.get("exposure", {}).get("mode") == "latent":
+            keys = spec.get("exposure", {}).get("hidden_state_keys", [])
+            self.hidden_baseline = {key: deepcopy(self.state.get(key)) for key in keys}
+
+    def expose_failure(self, event):
+        self.failure_exposed = True
 
     def close(self): pass
     def health_check(self): return True

@@ -49,8 +49,10 @@ def _guard_policy(messages, images, schema):
     payload = json.loads(messages[0]["content"])
     subgoal = payload["proposal"]["subgoal_id"]
     state = payload["after"].get("structured_state") or {}
-    if subgoal == "S2" and state.get("target") == "bad":
-        return {"judgement": "contradicted", "progress_updates": [], "fault_root": "S1",
+    graph_nodes = payload["task_dag"]["nodes"]
+    if state.get("target") == "bad" and subgoal in {"S2", "S4"}:
+        root = "S2" if "S4" in graph_nodes else "S1"
+        return {"judgement": "contradicted", "progress_updates": [], "fault_root": root,
                 "fault_type": "wrong_target", "verification_target": None,
                 "reason": "The value is in the wrong target; the earliest invalid state is S1."}
     return {"judgement": "verified", "progress_updates": [{"node_id": subgoal,

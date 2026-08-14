@@ -17,14 +17,18 @@ Phase II-B implementation commit: `5636309f8b0442686e95fa24b8c8190c3d078c5d`.
 - Bounded history, UNKNOWN verification, FINISH gate, repair/verification budgets.
 - Run/episode logging, hashes/metadata, aggregate metrics, discovery and DAG review tools.
 - HTTP fake model server and Phase-I/II regression and full fake E2E tests.
+- Validity cleanup separates injection/exposure/detection/repair timing, removes
+  latest-retry timing leakage, and derives primary metrics from trajectory behavior.
 
 ## Validation
 
 - Pre-Phase-II-B baseline: 59 tests passed; mock demo and offline eval passed.
-- Final suite: 77 tests passed.
+- Experiment-validity suite: 90 tests passed before final acceptance rerun.
 - Fake readiness: `FULLY_READY`.
 - Fake `executor_only`, `latest_retry`, and `stateguard` batches complete.
 - StateGuard fake batch: task/recovery/root/F1/preservation = 1.0; false intervention = 0.
+- Four-node latent E2E injects at S2, exposes at S4, first diagnoses S2, preserves S1,
+  invalidates S3/S4, and repairs without re-executing S1.
 
 ## External blockers
 

@@ -29,6 +29,7 @@ evaluation:
   save_model_responses: true
 tasks:
   - task_id: fake_wrong_target
+    certified_clean: true
     instruction: Select good target and enter ok
     app: calc
     graph_file: configs/tasks/fake/wrong_target.json
@@ -46,10 +47,11 @@ tasks:
         type: wrong_target
         root_node: S1
         inject: {trigger: {subgoal_id: S1, occurrence: 1}, mutation: {action_override: {type: click, x: 20, y: 20}}}
-        detection: {immediate: true}
+        exposure: {mode: immediate}
         expected_affected: [S1, S2]
         expected_preserved: []
   - task_id: fake_wrong_value
+    certified_clean: true
     instruction: Select good target and enter ok
     app: writer
     graph_file: configs/tasks/fake/wrong_value.json
@@ -65,10 +67,11 @@ tasks:
         type: wrong_value
         root_node: S2
         inject: {trigger: {subgoal_id: S2, occurrence: 1}, mutation: {replace_text: bad}}
-        detection: {immediate: true}
+        exposure: {mode: immediate}
         expected_affected: [S2]
         expected_preserved: [S1]
   - task_id: fake_no_effect
+    certified_clean: true
     instruction: Select good target and enter ok
     app: chrome
     graph_file: configs/tasks/fake/no_effect.json
@@ -83,25 +86,32 @@ tasks:
         type: no_effect
         root_node: S1
         inject: {trigger: {subgoal_id: S1, occurrence: 1}, mutation: {}}
-        detection: {immediate: true}
+        exposure: {mode: immediate}
         expected_affected: [S1, S2]
         expected_preserved: []
   - task_id: fake_earlier_corruption
+    certified_clean: true
     instruction: Select good target and enter ok
     app: files
     graph_file: configs/tasks/fake/earlier_corruption.json
-    initial_state: {target: none, value: none}
-    success_state: {target: good, value: ok}
-    actions: {S1: {type: click, x: 10, y: 10}, S2: {type: type, text: ok}}
+    initial_state: {workspace_open: false, target: none, value: none, saved: false}
+    success_state: {workspace_open: true, target: good, value: ok, saved: true}
+    actions:
+      S1: {type: click, x: 5, y: 5}
+      S2: {type: click, x: 10, y: 10}
+      S3: {type: type, text: ok}
+      S4: {type: hotkey, keys: [CTRL, S]}
     action_rules:
+      - {match: {type: click, x: 5, y: 5}, effect: {workspace_open: true}}
       - {match: {type: click, x: 10, y: 10}, effect: {target: good}}
       - {match: {type: click, x: 20, y: 20}, effect: {target: bad}}
       - {match: {type: type, text: ok}, effect: {value: ok}}
+      - {match: {type: hotkey, keys: [CTRL, S]}, effect: {saved: true}}
     faults:
       - fault_id: fake_earlier_corruption
         type: earlier_state_corruption
-        root_node: S1
-        inject: {trigger: {subgoal_id: S1, occurrence: 1}, mutation: {action_override: {type: click, x: 20, y: 20}}}
-        detection: {immediate: false}
-        expected_affected: [S1, S2]
-        expected_preserved: []
+        root_node: S2
+        inject: {trigger: {subgoal_id: S2, occurrence: 1}, mutation: {action_override: {type: click, x: 20, y: 20}}}
+        exposure: {mode: latent, trigger: {subgoal_id: S4}, hidden_state_keys: [target]}
+        expected_affected: [S2, S3, S4]
+        expected_preserved: [S1]
