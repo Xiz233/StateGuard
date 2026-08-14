@@ -29,7 +29,8 @@ def verify_transition(node: TaskNode, proposal, before: Observation,
     persist = bool(getattr(node, "verify_action", None))
     reopening = persist and getattr(action, "name", None) == node.verify_action
 
-    effect = resolve_effect(node.expected_effect, action.params)
+    params = action.get("params", action) if isinstance(action, dict) else action.params
+    effect = resolve_effect(node.expected_effect, params)
     result = check_effect(effect, after.snapshot)
 
     if persist and not reopening:

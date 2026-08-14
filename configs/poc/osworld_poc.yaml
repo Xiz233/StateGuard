@@ -1,0 +1,9 @@
+experiment: {name: osworld_stateguard_poc, output_dir: runs, seed: 20260814}
+runtime: {max_total_steps: 50, max_repair_cycles_per_fault: 3, max_unknown_verification_cycles: 3, max_executor_parse_retries: 1, max_guard_parse_retries: 1, history_window: 10}
+environment: {backend: osworld, provider: docker, headless: true}
+executor: {provider: executor_qwen}
+guard: {provider: stateguard_api, backend: hybrid}
+task_graph: {source: manual}
+faults: {enabled: true}
+evaluation: {save_screenshots: true, save_model_responses: true}
+task_manifest: configs/poc/selected_tasks.yaml

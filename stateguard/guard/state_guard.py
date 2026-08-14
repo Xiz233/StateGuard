@@ -60,12 +60,13 @@ class StateGuard:
         verdict = (self.backend.verify(task_state, before, proposal, after)
                    if self.backend else _verify(node, proposal, before, after))
 
-        if self.backend and verdict.judgement == "contradicted":
+        model_verdict = hasattr(verdict, "progress_updates")
+        if model_verdict and verdict.judgement == "contradicted":
             root = verdict.fault_root or node.node_id
             projected = self._project(task_state, updates)
             return self._contradicted(projected, DependencyGraph.from_state(projected),
                                       root, updates, verdict.fault_type or FaultType.NO_EFFECT.value)
-        if self.backend and verdict.judgement == "verified":
+        if model_verdict and verdict.judgement == "verified":
             evidence_text = next((u.get("evidence") for u in verdict.progress_updates
                                   if u.get("node_id") == node.node_id), verdict.reason)
             from ..core.schema import Evidence
@@ -85,7 +86,9 @@ class StateGuard:
 
         if verdict.judgement == "contradicted":
             check_result = check_effect(
-                resolve_effect(node.expected_effect, proposal.action.params),
+                resolve_effect(node.expected_effect,
+                               proposal.action.get("params", proposal.action)
+                               if isinstance(proposal.action, dict) else proposal.action.params),
                 after.snapshot,
             )
             return self._contradict_via(node.node_id, task_state, updates, after,

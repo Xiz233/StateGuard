@@ -1,101 +1,58 @@
 # StateGuard
 
-**Verified task state + causal fault localization + dependency-aware minimal repair.**
+Verified task state, causal fault localization, dependency-aware invalidation,
+and minimal repair for long-horizon GUI agents.
 
-Phase I: core mechanism only — no GUI benchmarks, no baselines, no
-training (指引.txt §0/37). The goal is one clean, testable, benchmark-independent
-task-state repair mechanism:
+## Project phases
 
-> StateGuard maintains an explicit verified task state, identifies the earliest
-> violated dependency when execution becomes inconsistent, invalidates only the
-> downstream progress affected by that violation, and provides a minimal repair
-> target while preserving independent verified progress.
+- **Phase I — symbolic mechanism:** `VerifiedTaskState`, deterministic DAG,
+  evidence/status transitions, rule verification, localization, repair, replay,
+  fault injection, and offline metrics.
+- **Phase II-A — real-GUI interfaces:** multimodal observations, OpenAI-compatible
+  model providers, hybrid visual Guard, MLLM Executor, bounded repair loop, and
+  an OSWorld adapter boundary.
+- **Phase II-B — experiment-ready infrastructure:** controlled GUI faults, three
+  PoC modes, fake/full backend contracts, batch/resume/dry-run, task discovery and
+  manual DAG approval, paper-grade logging, metrics, and readiness checks.
 
-## Quickstart
+Real StateGuard/Qwen model endpoints and real OSWorld deployment remain external.
+No model weights, training pipeline, benchmark assets, or hidden evaluator data are
+included.
+
+## Quick validation
 
 ```bash
-python scripts/run_mock_demo.py            # §31 key demo (fault -> localize -> repair)
-python scripts/run_offline_eval.py         # §27 offline metrics over 12 synthetic tasks
-pytest                                     # all unit tests
+pip install -e .
+pytest -q
+python scripts/run_mock_demo.py
+python scripts/run_offline_eval.py
+python scripts/check_readiness.py --backend fake
+python scripts/run_poc_osworld.py --config configs/poc/fake_osworld.yaml --mode stateguard
 ```
 
-## Layout (指引.txt §6; `stateguard_project/` == this directory)
+The fake backend exercises the complete experiment plumbing but produces no research
+result. For real deployment, follow `docs/OSWORLD_DEPLOYMENT_HANDOFF.md`.
 
-```
-stateguard/            runtime core (never sees ground truth / benchmarks, §22/35)
-  core/                NodeStatus, Evidence, TaskNode, VerifiedTaskState, DependencyGraph
-  compiler/            compile_from_spec / compile_from_instruction (LLM stub)
-  guard/               StateGuard: verify / localize / repair + prompts
-  interfaces/          Observation, Action, EnvironmentAdapter
-replay/                MockEnvironment (symbolic) + ReplayEnvironment (saved trajectories)
-fault_injection/       offline labeling: fault injection + ground truth + episode harness
-eval/                  localization / recovery / progress metrics + per-episode logging
-examples/synthetic_tasks/  12 tasks (linear/branching/independent/multi-source/multi-output)
-scripts/               run_mock_demo.py, run_offline_eval.py
-tests/                 pytest suite
-```
+## Core invariants
 
-## Core ideas
+- `EXECUTED != VERIFIED`.
+- A semantic verifier/localizer selects only `fault_root`.
+- Authoritative affected nodes are `fault_root + graph.descendants(fault_root)`.
+- Independent verified progress is preserved.
+- `RepairRequest` targets the smallest invalid region; it never regenerates a plan.
+- Executor and Guard never receive controlled-fault ground truth.
+- `stateguard/` never imports benchmark or experiment packages.
 
-- **EXECUTED != VERIFIED**: an action executed but unconfirmed stays EXECUTED
-  (`UNKNOWN` judgement + verification target, §20). Persistence-style subgoals
-  (save / commit) are only VERIFIED after a `verify_action` (e.g. reopen).
-- **Only the fault root is a judgement**: downstream invalidation is
-  deterministic graph code (`graph.descendants(root)`, §11). Independent
-  VERIFIED nodes are never touched (§12/13).
-- **Minimal repair**: a `RepairRequest` carries preserve / stale / reverify
-  sets — never a regenerated plan (§15).
-- **Consistency sweep**: every step, the guard re-checks VERIFIED nodes'
-  `expected_result` against the observation, so wrong facts are caught at their
-  true source (e.g. value written to Sheet1 is localized to S3 "select Sheet2",
-  not to the save step, §5.2).
-- **Offline separation** (§22): `stateguard/` never imports `fault_injection/`,
-  `eval/`, or ground truth. Fault labels live in the offline side only.
+## Main entry points
 
-## Runtime interface (指引.txt §18 — kept stable)
-
-```python
-task_state = compiler.compile(task)
-obs = env.reset()
-repair_context = None
-while True:
-    proposal = executor.act(observation=obs, task_state=task_state,
-                            repair_context=repair_context)
-    if proposal.is_finish:
-        result = guard.verify_finish(task_state=task_state, observation=obs)
-        if result.approved:
-            break
-        repair_context = result.repair
-        continue
-    before = obs
-    after = env.step(proposal.action)
-    result = guard.verify_transition(task_state=task_state, before=before,
-                                     proposal=proposal, after=after)
-    task_state.apply(result.state_updates)
-    repair_context = result.repair if result.requires_repair else None
-    obs = after
+```bash
+python scripts/check_readiness.py
+python scripts/run_poc_osworld.py --config configs/poc/osworld_poc.yaml --mode stateguard --dry-run
+python scripts/prepare_osworld_poc.py --benchmark-root /path/to/OSWorld
+python scripts/prepare_task_graphs.py --manifest configs/poc/selected_tasks.yaml
+python scripts/review_task_graphs.py --manifest configs/poc/selected_tasks.yaml --reviewer NAME
 ```
 
-## Logging (指引.txt §28)
-
-Every episode writes under `run/<episode>/`: `task.json`,
-`task_state_initial.json`, `task_state_final.json`, `trajectory.jsonl`,
-`guard_events.jsonl`, `repair_events.jsonl`, `metrics.json`.
-
-## Intentional simplifications (ponytail mode)
-
-- Rule-based verifier / localizer (learned versions plug in behind
-  `prompts.py` schemas).
-- No `executor` module in `stateguard/`: the spec-driven executor is an example
-  component (`examples/synthetic_tasks/spec_executor.py`).
-- Declarative action effects (`{var: literal|"@param"}`) instead of a world model.
-- `graphlib.TopologicalSorter` from the stdlib for topological order/cycles.
-
-## Phase II-A readiness
-
-The Phase-I rule path remains intact. Phase II-A adds multimodal `Observation`, an
-OpenAI-compatible model client, hybrid visual Guard, manual DAG loading, a GUI
-Executor, bounded autonomous repair, and a lazy OSWorld adapter. Copy
-`configs/models.example.yaml` to `configs/models.yaml`; keep credentials only in the
-environment. Run `python scripts/check_readiness.py` before an external PoC. Qwen
-weights and OSWorld are intentionally not installed by this repository.
+PoC modes are `executor_only`, `latest_retry`, and `stateguard`. Use `--task ID`
+for one task, `--tasks all` for a batch, `--resume` to skip completed episodes, and
+`--rerun-failed` to repeat only failed resumed episodes.

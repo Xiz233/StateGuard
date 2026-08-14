@@ -1,32 +1,81 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Any, Protocol, runtime_checkable
+
 from stateguard.interfaces.environment import EnvironmentAdapter
 
 from .action_converter import convert_action
 from .observation_converter import convert_observation
 
 
-class OSWorldAdapter(EnvironmentAdapter):
-    """Thin wrapper; importing this module never imports desktop_env."""
-    def __init__(self, env=None):
-        if env is None:
-            try:
-                import desktop_env
-            except ImportError as exc:
-                raise RuntimeError("OSWorld is not installed") from exc
-            env = desktop_env.DesktopEnv()
-        self.env, self._step = env, 0
+@dataclass
+class EvaluationResult:
+    success: bool
+    score: float = 0.0
+    details: dict | None = None
 
-    def reset(self, task=None):
-        self._step = 0
-        return convert_observation(self.env.reset(task) if task is not None else self.env.reset())
+
+@runtime_checkable
+class OSWorldBackendProtocol(Protocol):
+    def reset(self, task_spec: dict) -> dict: ...
+    def get_observation(self) -> dict: ...
+    def execute_action(self, action: dict) -> dict: ...
+    def evaluate(self, task_spec: dict) -> EvaluationResult | dict: ...
+    def close(self) -> None: ...
+    def health_check(self) -> bool: ...
+    def backend_info(self) -> dict: ...
+
+
+class DesktopEnvBackend:
+    """The only version-sensitive OSWorld seam."""
+    def __init__(self, **kwargs):
+        try:
+            from desktop_env.envs.desktop_env import DesktopEnv
+        except ImportError as exc:
+            raise RuntimeError("OSWorld is not installed") from exc
+        self.env = DesktopEnv(**kwargs)
+
+    def reset(self, task_spec): return self.env.reset(task_spec)
+    def get_observation(self): return self.env._get_obs()
+    def execute_action(self, action): return self.env.step(action)
+    def evaluate(self, task_spec): return self.env.evaluate()
+    def close(self): self.env.close()
+    def health_check(self): return True
+    def backend_info(self): return {"name": "desktop_env"}
+
+
+class OSWorldAdapter(EnvironmentAdapter):
+    def __init__(self, backend: OSWorldBackendProtocol | None = None, screen_size=(1920, 1080),
+                 **backend_kwargs):
+        self.backend = backend or DesktopEnvBackend(**backend_kwargs)
+        self.screen_size, self._step, self._task = screen_size, 0, None
+
+    def reset(self, task_spec=None):
+        self._step, self._task = 0, task_spec or {}
+        try:
+            raw = self.backend.reset(self._task)
+        except TypeError:
+            raw = self.backend.reset()
+        return convert_observation(raw, self._step)
 
     def observe(self):
-        return convert_observation(self.env.observe(), self._step)
+        observe = getattr(self.backend, "get_observation", None) or self.backend.observe
+        return convert_observation(observe(), self._step)
 
     def step(self, action):
         self._step += 1
-        return convert_observation(self.env.step(convert_action(action)), self._step)
+        execute = getattr(self.backend, "execute_action", None) or self.backend.step
+        return convert_observation(execute(convert_action(action, self.screen_size)), self._step)
 
-    def evaluate(self):
-        return self.env.evaluate()
+    def evaluate(self, task_spec=None):
+        try:
+            result = self.backend.evaluate(task_spec or self._task)
+        except TypeError:
+            result = self.backend.evaluate()
+        return result if isinstance(result, EvaluationResult) else EvaluationResult(**result)
+
+    def close(self):
+        if hasattr(self.backend, "close"): self.backend.close()
+    def health_check(self): return self.backend.health_check() if hasattr(self.backend, "health_check") else True
+    def backend_info(self): return self.backend.backend_info() if hasattr(self.backend, "backend_info") else {"name": type(self.backend).__name__}

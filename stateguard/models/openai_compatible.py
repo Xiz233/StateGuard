@@ -66,7 +66,7 @@ class OpenAICompatibleModelClient(MultimodalModelClient):
                 parsed = parse_json(text) if response_schema is not None else None
                 return ModelResponse(text, parsed, raw.get("model", self.config.model),
                                      raw.get("usage"), time.monotonic() - started, raw)
-            except (urllib.error.URLError, urllib.error.HTTPError, KeyError, IndexError,
+            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, KeyError, IndexError,
                     json.JSONDecodeError, ModelResponseError) as exc:
                 error = exc
                 if attempt + 1 < self.config.max_retries:

@@ -1,0 +1,29 @@
+Task initialized
+S1 PENDING, S2 PENDING, S3 PENDING, S4 PENDING, S5 PENDING
+
+S1 VERIFIED
+S2 VERIFIED
+Injected fault:
+S3 WRONG_TARGET
+
+StateGuard:
+fault_root = S3
+
+State update:
+S3 FAILED
+(no stale nodes)
+
+Preserved:
+S1, S2
+
+Repair target:
+Restore select Sheet2 in the workbook without repeating S1, S2
+
+Repair executed
+
+S3 VERIFIED
+S4 VERIFIED
+S5 EXECUTED (verification target: Re-run reopen to confirm persistence of save the file and confirm persistence.)
+S5 VERIFIED
+
+Task complete

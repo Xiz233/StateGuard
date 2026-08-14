@@ -8,7 +8,7 @@ providers:
     type: openai_compatible
     base_url: ${EXECUTOR_BASE_URL}
     api_key_env: EXECUTOR_API_KEY
-    model: Qwen3-VL-32B-Instruct
+    model: ${EXECUTOR_MODEL}
 roles:
   stateguard: {provider: stateguard_api}
   task_compiler: {provider: stateguard_api, enabled_for_poc: false}

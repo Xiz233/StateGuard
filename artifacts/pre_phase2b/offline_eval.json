@@ -1,0 +1,10 @@
+=== StateGuard offline eval: 62 injected + 12 clean episodes -> run/ ===
+Localization Accuracy      1.000
+Affected Set Precision     1.000
+Affected Set Recall        1.000
+Affected Set F1            1.000
+Recovery Success           1.000
+Progress Preservation      1.000
+Repair Radius (reactivated)1.77 mean
+Repair Radius (actions)    1.97 mean
+False Intervention Rate    0.000

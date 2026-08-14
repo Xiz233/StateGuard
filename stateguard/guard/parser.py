@@ -66,7 +66,7 @@ def predicate_violated(pred: str, snapshot: dict) -> bool:
 
 
 def resolve_effect(effect: dict[str, str], params: dict[str, Any]) -> dict[str, Any]:
-    """'@param' placeholders resolved from action kwargs; others are literals."""
+    """Resolve '@param' references from action kwargs; keep other literals."""
     resolved = {}
     for var, expr in effect.items():
         if isinstance(expr, str) and expr.startswith("@"):

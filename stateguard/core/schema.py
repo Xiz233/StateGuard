@@ -112,6 +112,16 @@ class RepairRequest:
         return cls(**d)
 
 
+@dataclass
+class VerificationRequest:
+    target: str
+    subgoal_id: str
+    cycles: int = 0
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
 # StateGuard unified output schema (指引.txt §19).
 @dataclass
 class GuardResult:
