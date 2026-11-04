@@ -8,6 +8,7 @@ from .result import FailureExposureEvent, FaultInjectionEvent
 class FaultInjector(ABC):
     def __init__(self, spec: dict):
         self.spec, self.injected, self.exposed = spec, False, False
+        self.trigger_occurrences = 0
         exposure = dict(spec.get("exposure", {}))
         if not exposure:
             exposure = {"mode": "immediate" if spec.get("detection", {}).get("immediate", True)
@@ -19,8 +20,14 @@ class FaultInjector(ABC):
 
     def should_inject(self, task_id, step, proposal, task_state) -> bool:
         trigger = self.spec["inject"]["trigger"]
-        return (not self.injected and proposal.subgoal_id == trigger["subgoal_id"]
-                and step >= int(trigger.get("occurrence", 1)))
+        if self.injected or proposal.subgoal_id != trigger["subgoal_id"]:
+            return False
+        action_type = (proposal.action.get("type")
+                       if isinstance(proposal.action, dict) else None)
+        if trigger.get("action_type") and action_type != trigger["action_type"]:
+            return False
+        self.trigger_occurrences += 1
+        return self.trigger_occurrences >= int(trigger.get("occurrence", 1))
 
     @abstractmethod
     def mutate_action(self, proposal, spec): ...

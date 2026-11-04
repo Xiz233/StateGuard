@@ -1,0 +1,30 @@
+[
+  {
+    "case_id": "verified_transition",
+    "expected": "verified",
+    "instruction": "Enter the value 42 in cell B2.",
+    "before": "/absolute/path/case_a_before.png",
+    "after": "/absolute/path/case_a_after.png",
+    "task_dag": {"nodes": {"S1": {"description": "Enter 42 in B2", "dependencies": []}}},
+    "proposal": {"subgoal_id": "S1", "intent": "Enter 42", "expected_effect": "B2 shows 42", "action": {"type": "type", "text": "42"}, "is_finish": false}
+  },
+  {
+    "case_id": "contradicted_wrong_value",
+    "expected": "contradicted",
+    "instruction": "Enter the value 42 in cell B2.",
+    "before": "/absolute/path/case_b_before.png",
+    "after": "/absolute/path/case_b_after.png",
+    "task_dag": {"nodes": {"S1": {"description": "Enter 42 in B2", "dependencies": []}}},
+    "proposal": {"subgoal_id": "S1", "intent": "Enter 42", "expected_effect": "B2 shows 42", "action": {"type": "type", "text": "42"}, "is_finish": false}
+  },
+  {
+    "case_id": "unknown_persistence",
+    "expected": "unknown",
+    "instruction": "Save the document so the change persists.",
+    "before": "/absolute/path/case_c_before.png",
+    "after": "/absolute/path/case_c_after.png",
+    "context": "The Save shortcut was pressed, but persistence cannot be established from the unchanged editor screenshot alone.",
+    "task_dag": {"nodes": {"S1": {"description": "Save the document", "dependencies": [], "evidence_mode": "persistence"}}},
+    "proposal": {"subgoal_id": "S1", "intent": "Save", "expected_effect": "Document persists", "action": {"type": "hotkey", "keys": ["CTRL", "S"]}, "is_finish": false}
+  }
+]

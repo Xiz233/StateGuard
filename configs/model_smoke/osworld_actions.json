@@ -1,0 +1,8 @@
+[
+  {"type": "click", "x": 780, "y": 650},
+  {"type": "type", "text": "StateGuard smoke"},
+  {"type": "hotkey", "keys": ["CTRL", "Z"]},
+  {"type": "scroll", "dx": 0, "dy": -427},
+  {"type": "drag", "x1": 780, "y1": 520, "x2": 860, "y2": 520},
+  {"type": "wait"}
+]

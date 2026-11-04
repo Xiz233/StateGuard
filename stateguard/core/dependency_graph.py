@@ -6,7 +6,7 @@ from __future__ import annotations
 import graphlib
 from collections import deque
 
-from .schema import TaskNode
+from .schema import NodeStatus, TaskNode
 from .task_state import VerifiedTaskState
 
 
@@ -89,3 +89,13 @@ class DependencyGraph:
 
     def affected_set(self, root: str) -> list[str]:
         return [root] + self.descendants(root)
+
+    def executable_frontier(self, task_state: VerifiedTaskState) -> list[str]:
+        """Deterministic frontier: nodes whose dependencies are all VERIFIED
+        and which are not yet VERIFIED themselves (eligible for execution or
+        repair). The LLM never decides dependency satisfaction; this helper
+        does."""
+        return [nid for nid in self.topological_order()
+                if task_state.get(nid).status != NodeStatus.VERIFIED
+                and all(task_state.get(p).status == NodeStatus.VERIFIED
+                        for p in self.parents(nid))]

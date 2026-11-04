@@ -1,0 +1,301 @@
+seed: 20260814
+tasks:
+- task_id: 030eeff7-b492-4218-b312-701ec99ee0cc
+  instruction: Can you enable the 'Do Not Track' feature in Chrome to enhance my online
+    privacy?
+  application: chrome
+  category: chrome
+  evaluator:
+    postconfig:
+    - type: chrome_inject_js
+      parameters:
+        js: if (document.activeElement && document.activeElement.blur) { document.activeElement.blur();
+          }
+        wait_for_load: false
+    - type: sleep
+      parameters:
+        seconds: 1.0
+    - type: launch
+      parameters:
+        command:
+        - pkill
+        - chrome
+    - type: launch
+      parameters:
+        command:
+        - google-chrome
+        - --remote-debugging-port=1337
+    - type: sleep
+      parameters:
+        seconds: 3
+    func: exact_match
+    result:
+      type: enable_do_not_track
+    expected:
+      type: rule
+      rules:
+        expected: 'true'
+  setup_requirements:
+  - type: launch
+    parameters:
+      command:
+      - google-chrome
+      - --remote-debugging-port=1337
+  - type: launch
+    parameters:
+      command:
+      - socat
+      - tcp-listen:9222,fork
+      - tcp:localhost:1337
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/chrome/030eeff7-b492-4218-b312-701ec99ee0cc.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/chrome/030eeff7-b492-4218-b312-701ec99ee0cc.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/030eeff7-b492-4218-b312-701ec99ee0cc.json
+  faults:
+  - fault_id: 030eeff7-b492-4218-b312-701ec99ee0cc--earlier_state_corruption--1
+    type: earlier_state_corruption
+    root_node: S2
+    inject:
+      trigger:
+        subgoal_id: S2
+        action_type: click
+        occurrence: 1
+      mutation:
+        coordinate_offset:
+          dx: 0
+          dy: 150
+    exposure:
+      mode: delayed
+      trigger:
+        subgoal_id: S4
+    expected_affected:
+    - S2
+    - S3
+    - S4
+    expected_preserved:
+    - S1
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Corrupt an early dependency action; exposure is scheduled at a downstream
+        node to exercise latent corruption localization.
+  - fault_id: 030eeff7-b492-4218-b312-701ec99ee0cc--wrong_target--2
+    type: wrong_target
+    root_node: S4
+    inject:
+      trigger:
+        subgoal_id: S4
+        action_type: click
+        occurrence: 1
+      mutation:
+        coordinate_offset:
+          dx: 400
+          dy: 0
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S4
+    expected_preserved:
+    - S1
+    - S2
+    - S3
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Offset the executor's own click onto a different/wrong UI target. Verify
+        the offset magnitude against the actual trajectory in the recovery smoke.
+- task_id: 5ced85fc-fa1a-4217-95fd-0fb530545ce2
+  instruction: Append "<br/>" to the end of each line in "1\n2\n3" and save in output.txt
+  application: os
+  category: file
+  evaluator:
+    postconfig:
+    - type: download
+      parameters:
+        files:
+        - url: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/os/5ced85fc-fa1a-4217-95fd-0fb530545ce2/eval.sh
+          path: eval.sh
+    - type: execute
+      parameters:
+        command: chmod +x eval.sh
+        shell: true
+    func: check_include_exclude
+    result:
+      type: vm_command_line
+      command: bash eval.sh
+      shell: true
+    expected:
+      type: rule
+      rules:
+        include:
+        - 'Success: The task has been completed correctly.'
+        exclude: []
+  setup_requirements:
+  - type: execute
+    parameters:
+      command:
+      - python
+      - -c
+      - import pyautogui; import time; time.sleep(0.5); pyautogui.click({SCREEN_WIDTH_HALF},
+        {SCREEN_HEIGHT_HALF}); time.sleep(0.5); pyautogui.hotkey('ctrl', 'alt', 't');
+        time.sleep(0.5)
+  - type: activate_window
+    parameters:
+      window_name: Terminal
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/os/5ced85fc-fa1a-4217-95fd-0fb530545ce2.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/os/5ced85fc-fa1a-4217-95fd-0fb530545ce2.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/5ced85fc-fa1a-4217-95fd-0fb530545ce2.json
+  faults:
+  - fault_id: 5ced85fc-fa1a-4217-95fd-0fb530545ce2--wrong_value--1
+    type: wrong_value
+    root_node: S1
+    inject:
+      trigger:
+        subgoal_id: S1
+        action_type: type
+        occurrence: 1
+      mutation:
+        replace_text: echo -e '1<br/>\n2<br/>\n33<br/>' > output.txt
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S1
+    expected_preserved: []
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Replace the executor's typed text with a concrete wrong value/command.
+        Verify the executor actually issues a type action for this node.
+  - fault_id: 5ced85fc-fa1a-4217-95fd-0fb530545ce2--no_effect--2
+    type: no_effect
+    root_node: S1
+    inject:
+      trigger:
+        subgoal_id: S1
+        action_type: type
+        occurrence: 1
+      mutation: {}
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S1
+    expected_preserved: []
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Replace the root-node action with a no-op wait so the expected effect
+        does not occur.
+- task_id: d53ff5ee-3b1a-431e-b2be-30ed2673079b
+  instruction: I am currently engaged in text processing and require assistance in
+    converting all uppercase text to lowercase within my document. This precision
+    is critical for maintaining a uniform and polished presentation. Could you help
+    me on this?
+  application: libreoffice_writer
+  category: writer
+  evaluator:
+    func: compare_docx_files
+    postconfig:
+    - type: activate_window
+      parameters:
+        window_name: presentation_instruction_2023_Feb.docx - LibreOffice Writer
+        strict: true
+    - type: sleep
+      parameters:
+        seconds: 0.5
+    - type: execute
+      parameters:
+        command:
+        - python
+        - -c
+        - 'import pyautogui; import time; pyautogui.hotkey(''ctrl'', ''s''); time.sleep(0.5); '
+    expected:
+      type: cloud_file
+      path: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/libreoffice_writer/d53ff5ee-3b1a-431e-b2be-30ed2673079b/presentation_instruction_2023_Feb_Gold.docx
+      dest: presentation_instruction_2023_Feb_Gold.docx
+    result:
+      type: vm_file
+      path: /home/user/Desktop/presentation_instruction_2023_Feb.docx
+      dest: presentation_instruction_2023_Feb.docx
+  setup_requirements:
+  - type: download
+    parameters:
+      files:
+      - url: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/libreoffice_writer/d53ff5ee-3b1a-431e-b2be-30ed2673079b/presentation_instruction_2023_Feb.docx
+        path: /home/user/Desktop/presentation_instruction_2023_Feb.docx
+  - type: open
+    parameters:
+      path: /home/user/Desktop/presentation_instruction_2023_Feb.docx
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/libreoffice_writer/d53ff5ee-3b1a-431e-b2be-30ed2673079b.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/libreoffice_writer/d53ff5ee-3b1a-431e-b2be-30ed2673079b.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/d53ff5ee-3b1a-431e-b2be-30ed2673079b.json
+  faults:
+  - fault_id: d53ff5ee-3b1a-431e-b2be-30ed2673079b--earlier_state_corruption--1
+    type: earlier_state_corruption
+    root_node: S3
+    inject:
+      trigger:
+        subgoal_id: S3
+        action_type: click
+        occurrence: 1
+      mutation:
+        coordinate_offset:
+          dx: 0
+          dy: 200
+    exposure:
+      mode: delayed
+      trigger:
+        subgoal_id: S5
+    expected_affected:
+    - S3
+    - S4
+    - S5
+    - S6
+    expected_preserved:
+    - S1
+    - S2
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Corrupt an early dependency action; exposure is scheduled at a downstream
+        node to exercise latent corruption localization.
+  - fault_id: d53ff5ee-3b1a-431e-b2be-30ed2673079b--wrong_target--2
+    type: wrong_target
+    root_node: S4
+    inject:
+      trigger:
+        subgoal_id: S4
+        action_type: click
+        occurrence: 1
+      mutation:
+        coordinate_offset:
+          dx: 0
+          dy: 200
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S4
+    - S5
+    - S6
+    expected_preserved:
+    - S1
+    - S2
+    - S3
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Offset the executor's own click onto a different/wrong UI target. Verify
+        the offset magnitude against the actual trajectory in the recovery smoke.

@@ -19,6 +19,7 @@ class ModelProviderConfig:
     temperature: float = 0.0
     max_tokens: int | None = None
     extra_headers: dict[str, str] = field(default_factory=dict)
+    type: str = "openai_compatible"
 
 
 def _expand(value):
@@ -35,6 +36,6 @@ def load_model_config(path: str | Path) -> dict[str, ModelProviderConfig]:
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
     providers = {}
     for provider_id, raw in data.get("providers", {}).items():
-        raw = {k: _expand(v) for k, v in raw.items() if k != "type"}
+        raw = {k: _expand(v) for k, v in raw.items()}
         providers[provider_id] = ModelProviderConfig(provider_id=provider_id, **raw)
     return providers

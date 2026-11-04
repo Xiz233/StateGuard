@@ -1,0 +1,77 @@
+{
+  "nodes": [
+    {
+      "node_id": "S1",
+      "description": "Open a web browser and navigate to https://developer.apple.com/design/human-interface-guidelines/searching",
+      "dependencies": [],
+      "expected_result_semantic": "The Apple Human Interface Guidelines page about Searching is displayed in the browser.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S2",
+      "description": "Scroll through the page to locate the main content section beginning at 'Searching' and ending just before the 'Resources' section.",
+      "dependencies": [
+        "S1"
+      ],
+      "expected_result_semantic": "The relevant content range from 'Searching' up to (but not including) 'Resources' is identified on the page.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S3",
+      "description": "Select all the primary textual content within the identified range (from 'Searching' to just before 'Resources').",
+      "dependencies": [
+        "S2"
+      ],
+      "expected_result_semantic": "The desired content is highlighted/selected in the browser.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S4",
+      "description": "Copy the selected content to the clipboard.",
+      "dependencies": [
+        "S3"
+      ],
+      "expected_result_semantic": "The selected content is now stored in the system clipboard.",
+      "evidence_mode": "persistence",
+      "required": true
+    },
+    {
+      "node_id": "S5",
+      "description": "Open a word-processing application (e.g., Microsoft Word or a compatible editor) and create a new blank document.",
+      "dependencies": [
+        "S4"
+      ],
+      "expected_result_semantic": "A new blank document is open in the word processor.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S6",
+      "description": "Paste the clipboard content into the new document.",
+      "dependencies": [
+        "S5"
+      ],
+      "expected_result_semantic": "The document now contains the copied content from the Searching page.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S7",
+      "description": "Save the document as 'notes.docx' on the Desktop.",
+      "dependencies": [
+        "S6"
+      ],
+      "expected_result_semantic": "A file named 'notes.docx' exists on the Desktop containing the saved content.",
+      "evidence_mode": "persistence",
+      "required": true
+    }
+  ],
+  "graph": {
+    "approved": true,
+    "approved_by": "Codex-2026-08-15",
+    "approved_at": "2026-08-15T02:47:42.662039+00:00"
+  }
+}

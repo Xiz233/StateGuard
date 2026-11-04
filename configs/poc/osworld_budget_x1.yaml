@@ -1,0 +1,33 @@
+experiment: {name: osworld_budget_x1, output_dir: /data/research/stateguard_runs/poc_budget_x1, seed: 20260824}
+runtime: {max_total_steps: 50, max_repair_cycles_per_fault: 3, max_unknown_verification_cycles: 3, max_executor_parse_retries: 3, max_guard_parse_retries: 1, history_window: 10}
+repair: {max_cycles: 3, max_actions_per_cycle: 20}
+trace: {max_entries: 200, keep_recent_images: 10}
+environment:
+  backend: osworld
+  benchmark_version: OSWorld-Verified
+  root: /data/research/projects/OSWorld-StateGuard
+  vm_path: /data/research/ui-mopd-repro/repos/OSWorld/docker_vm_data/Ubuntu.qcow2
+  provider: docker
+  headless: true
+  cache_dir: /data/research/stateguard_runs/cache
+  require_a11y_tree: false
+  enable_proxy: false
+  client_password: password
+  reset_ready_timeout_seconds: 180
+  reset_poll_seconds: 2
+  reset_settle_seconds: 5
+  executor_coordinate_scale: 1000
+executor: {provider: executor_qwen}
+guard: {provider: stateguard_api, backend: hybrid}
+task_graph: {source: manual}
+execution: {guidance: frontier}
+verification:
+  policy: hybrid
+  repeated_action_threshold: 3
+  max_actions_per_subgoal: 10
+  unchanged_observation_threshold: 3
+  hybrid: {high_risk_interval: 2, medium_risk_interval: 5, checkpoint_cooldown: 2}
+faults: {enabled: true}
+evaluation: {save_screenshots: true, save_model_responses: true}
+task_manifest: configs/poc/selected_tasks_ready.yaml
+fault_manifest: configs/poc/fault_manifest.yaml

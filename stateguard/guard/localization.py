@@ -38,6 +38,21 @@ def causal_root(state: VerifiedTaskState, graph: DependencyGraph,
     return contradicted, _classify(state, contradicted, obs, check_result), 0.5
 
 
+def candidate_root_generation(graph: DependencyGraph, active_node: str) -> list[str]:
+    """Generate the causal candidates in deterministic topological order."""
+    return graph.ancestors(active_node) + [active_node]
+
+
+def earliest_failed_ancestor_selection(candidates: list[str],
+                                       trust_judgements: dict[str, str]) -> str | None:
+    """Select the earliest candidate explicitly judged untrustworthy."""
+    for node_id in candidates:
+        value = str(trust_judgements.get(node_id, "")).strip().upper()
+        if value in {"NO", "FALSE", "UNTRUSTED", "CONTRADICTED"}:
+            return node_id
+    return None
+
+
 def _parents_verified(state: VerifiedTaskState, graph: DependencyGraph, node: str) -> bool:
     return all(state.get(p).status == NodeStatus.VERIFIED for p in graph.parents(node))
 

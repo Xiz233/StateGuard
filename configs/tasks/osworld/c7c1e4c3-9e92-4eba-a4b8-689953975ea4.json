@@ -1,0 +1,67 @@
+{
+  "nodes": [
+    {
+      "node_id": "S1",
+      "description": "Identify the list of professors and their homepage links from the user's provided data.",
+      "dependencies": [],
+      "expected_result_semantic": "A structured list of professor names paired with their respective homepage URLs.",
+      "evidence_mode": "structured",
+      "required": true
+    },
+    {
+      "node_id": "S2",
+      "description": "Visit each professor's homepage to locate their contact information section.",
+      "dependencies": [
+        "S1"
+      ],
+      "expected_result_semantic": "Access to each professor's homepage with the contact or about section identified.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S3",
+      "description": "Extract the email address for each professor from their respective homepage.",
+      "dependencies": [
+        "S2"
+      ],
+      "expected_result_semantic": "A mapping of each professor's name to their corresponding email address.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S4",
+      "description": "Verify that each extracted email address is valid and correctly associated with the right professor.",
+      "dependencies": [
+        "S3"
+      ],
+      "expected_result_semantic": "A validated list of professor names with their correct email addresses.",
+      "evidence_mode": "structured",
+      "required": true
+    },
+    {
+      "node_id": "S5",
+      "description": "Populate the form by entering each professor's email address in the appropriate field.",
+      "dependencies": [
+        "S4"
+      ],
+      "expected_result_semantic": "The form is completed with all professors' email addresses correctly filled in.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S6",
+      "description": "Save the completed form with the professor email addresses.",
+      "dependencies": [
+        "S5"
+      ],
+      "expected_result_semantic": "The form is persisted with each professor matched to the correct email address.",
+      "evidence_mode": "persistence",
+      "required": true
+    }
+  ],
+  "graph": {
+    "approved": true,
+    "approved_by": "Codex-2026-08-15",
+    "approved_at": "2026-08-15T02:47:42.676827+00:00"
+  }
+}

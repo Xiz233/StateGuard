@@ -1,0 +1,27 @@
+fault_id: 3680a5ee-6870-426a-a997-eba929a0d25c--earlier_state_corruption--1
+type: earlier_state_corruption
+root_node: S1
+inject:
+  trigger:
+    subgoal_id: S1
+    action_type: type
+    occurrence: 1
+  mutation:
+    replace_text: ssconvert file1.xlsx file1.csv
+exposure:
+  mode: delayed
+  trigger:
+    subgoal_id: S4
+expected_affected:
+- S1
+- S2
+- S3
+- S4
+- S5
+expected_preserved: []
+manual_review:
+  approved: true
+  approved_by: Codex-2026-08-24
+  approved_at: '2026-08-24T08:00:00Z'
+  notes: Replace the first observed S1 terminal command with a premature one-file
+    conversion while retaining downstream exposure at S4.

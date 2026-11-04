@@ -15,12 +15,12 @@ def propagate_failure(state: VerifiedTaskState, graph: DependencyGraph,
     Returns the newly-stale node ids.
     ponytail: a PENDING root (missing subgoal, never executed) has nothing
     to fail, so it stays PENDING and is handled by the repair loop."""
-    if state.get(fault_root).status != NodeStatus.PENDING:
+    if state.get(fault_root).status not in (NodeStatus.PENDING, NodeStatus.FAILED):
         state.mark_failed(fault_root)
     stale: list[str] = []
     for d in graph.descendants(fault_root):
-        if state.get(d).status in (NodeStatus.VERIFIED, NodeStatus.EXECUTED,
-                                   NodeStatus.ACTIVE):
+        if state.get(d).status in (NodeStatus.VERIFIED, NodeStatus.SUSPICIOUS,
+                                   NodeStatus.EXECUTED, NodeStatus.ACTIVE):
             stale.append(d)
     state.mark_stale(stale)
     return stale
@@ -37,11 +37,14 @@ def build_repair_request(state: VerifiedTaskState, graph: DependencyGraph,
     stale = sorted(
         nid for nid in affected if state.get(nid).status == NodeStatus.STALE
     )
-    reverify = graph.affected_set(fault_root)
+    # Repair restores the failed root plus progress that was actually invalidated.
+    # Pending descendants remain normal future work; including them would keep the
+    # runtime in repair mode for the rest of the task.
+    reverify = [fault_root, *stale]
     root = state.get(fault_root)
     goal = (
         f"Restore {root.description} without repeating {preserve or 'anything else'}; "
-        f"then re-verify {reverify}."
+        f"then re-verify restored or invalidated progress {reverify}."
     )
     return RepairRequest(
         fault_root=fault_root,

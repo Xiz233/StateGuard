@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "stateguard"
 version = "0.1.0"
 description = "Verified task state + causal fault localization + dependency-aware minimal repair"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = ["PyYAML>=6"]
 
 [tool.setuptools.packages.find]

@@ -1,0 +1,57 @@
+{
+  "nodes": [
+    {
+      "node_id": "S1",
+      "description": "Inspect the contents of file1.xlsx and file2.ods to understand their structure and confirm each contains a single column of data.",
+      "dependencies": [],
+      "expected_result_semantic": "The user has viewed or extracted the data from both files and confirmed each has one column of string data.",
+      "evidence_mode": "structured",
+      "required": true
+    },
+    {
+      "node_id": "S2",
+      "description": "Convert or extract the data from file1.xlsx and file2.ods into plain text formats (e.g., CSV or TSV) using command-line tools so they can be processed.",
+      "dependencies": [
+        "S1"
+      ],
+      "expected_result_semantic": "Two plain-text files exist on disk, each containing the single column of data from the original spreadsheet files.",
+      "evidence_mode": "persistence",
+      "required": true
+    },
+    {
+      "node_id": "S3",
+      "description": "Merge the two extracted columns row-by-row by concatenating the corresponding strings from each file into a single column.",
+      "dependencies": [
+        "S2"
+      ],
+      "expected_result_semantic": "A single merged column of concatenated strings exists in memory or in a temporary file, with each row containing the concatenation of the corresponding rows from both input files.",
+      "evidence_mode": "structured",
+      "required": true
+    },
+    {
+      "node_id": "S4",
+      "description": "Save the merged column as a CSV file at ~/Desktop/output.csv.",
+      "dependencies": [
+        "S3"
+      ],
+      "expected_result_semantic": "The file ~/Desktop/output.csv exists and contains the merged, concatenated column data in valid CSV format.",
+      "evidence_mode": "persistence",
+      "required": true
+    },
+    {
+      "node_id": "S5",
+      "description": "Open ~/Desktop/output.csv in LibreOffice Calc from the terminal.",
+      "dependencies": [
+        "S4"
+      ],
+      "expected_result_semantic": "LibreOffice Calc launches and displays the contents of ~/Desktop/output.csv.",
+      "evidence_mode": "hybrid",
+      "required": true
+    }
+  ],
+  "graph": {
+    "approved": true,
+    "approved_by": "Codex-2026-08-15",
+    "approved_at": "2026-08-15T02:47:42.630898+00:00"
+  }
+}

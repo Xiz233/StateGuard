@@ -7,6 +7,7 @@ import os
 import time
 import urllib.error
 import urllib.request
+import uuid
 from pathlib import Path
 
 from .base import ModelResponse, MultimodalModelClient
@@ -27,8 +28,10 @@ def _image_url(image: str | bytes) -> str:
 
 
 class OpenAICompatibleModelClient(MultimodalModelClient):
-    def __init__(self, config: ModelProviderConfig, opener=None, sleep=time.sleep):
+    def __init__(self, config: ModelProviderConfig, opener=None, sleep=time.sleep,
+                 session_id: str | None = None):
         self.config, self.opener, self.sleep = config, opener or urllib.request.urlopen, sleep
+        self.session_id = session_id or str(uuid.uuid4())
 
     def generate(self, messages, images=None, response_schema=None) -> ModelResponse:
         key = os.getenv(self.config.api_key_env)
@@ -47,28 +50,56 @@ class OpenAICompatibleModelClient(MultimodalModelClient):
             payload["max_tokens"] = self.config.max_tokens
         if response_schema is not None:
             payload["response_format"] = {"type": "json_object"}
-        started, error = time.monotonic(), None
+        started, error, attempts = time.monotonic(), None, []
         for attempt in range(self.config.max_retries):
+            request_delta = None
             if attempt and response_schema is not None:
-                payload["messages"] = payload_messages + [
-                    {"role": "user", "content": "Return valid JSON only."}]
+                request_delta = {"append_messages": [
+                    {"role": "user", "content": "Return valid JSON only."}]}
+                payload["messages"] = payload_messages + request_delta["append_messages"]
+            headers = {
+                "Authorization": f"Bearer {key}", "Content-Type": "application/json",
+                "User-Agent": "OpenAI/Python 2.44.0", **self.config.extra_headers,
+            }
+            if "opencode.ai" in self.config.base_url:
+                headers["User-Agent"] = self.config.extra_headers.get(
+                    "User-Agent", "StateGuard/1.0")
+                headers["x-opencode-session"] = self.session_id
             request = urllib.request.Request(
                 self.config.base_url.rstrip("/") + "/chat/completions",
                 data=json.dumps(payload).encode(), method="POST",
-                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
-                         **self.config.extra_headers})
+                headers=headers)
             try:
+                attempt_started = time.monotonic()
                 with self.opener(request, timeout=self.config.timeout_seconds) as response:
                     raw = json.loads(response.read())
                 text = raw["choices"][0]["message"]["content"]
                 if not text:
                     raise ModelResponseError("model returned empty content")
                 parsed = parse_json(text) if response_schema is not None else None
+                attempts.append({"attempt": attempt + 1, "status": "completed",
+                                 "request_delta": request_delta,
+                                 "latency_seconds": time.monotonic() - attempt_started})
                 return ModelResponse(text, parsed, raw.get("model", self.config.model),
-                                     raw.get("usage"), time.monotonic() - started, raw)
-            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, KeyError, IndexError,
-                    json.JSONDecodeError, ModelResponseError) as exc:
-                error = exc
+                                     raw.get("usage"), time.monotonic() - started, raw,
+                                     attempts)
+            except urllib.error.HTTPError as exc:
+                body = exc.read().decode("utf-8", errors="replace")
+                error = f"HTTP {exc.code} {exc.reason}: {body[:2000]}"
+                attempts.append({"attempt": attempt + 1, "status": "failed",
+                                 "request_delta": request_delta,
+                                 "error": error})
                 if attempt + 1 < self.config.max_retries:
                     self.sleep(2 ** attempt)
-        raise ModelResponseError(f"model request failed after {self.config.max_retries} attempts: {error}")
+            except (urllib.error.URLError, TimeoutError, KeyError, IndexError,
+                    json.JSONDecodeError, ModelResponseError) as exc:
+                error = exc
+                attempts.append({"attempt": attempt + 1, "status": "failed",
+                                 "request_delta": request_delta,
+                                 "error": str(exc)})
+                if attempt + 1 < self.config.max_retries:
+                    self.sleep(2 ** attempt)
+        exc = ModelResponseError(
+            f"model request failed after {self.config.max_retries} attempts: {error}")
+        exc.attempts = attempts
+        raise exc

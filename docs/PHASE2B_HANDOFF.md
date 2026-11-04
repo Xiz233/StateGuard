@@ -32,7 +32,7 @@ Phase II-B implementation commit: `5636309f8b0442686e95fa24b8c8190c3d078c5d`.
 
 ## External blockers
 
-- `STATEGUARD_BASE_URL`, `STATEGUARD_API_KEY`, `STATEGUARD_MODEL`.
+- `OPENCODE_GO_API_KEY` for the configured OpenCode Go Qwen3.7 Plus Guard.
 - `EXECUTOR_BASE_URL`, `EXECUTOR_API_KEY`, `EXECUTOR_MODEL` for Qwen3-VL-32B-Instruct.
 - OSWorld/OSWorld-Verified installation, VM/Docker assets, and approved real task DAGs.
 

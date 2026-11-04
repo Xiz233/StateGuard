@@ -1,0 +1,27 @@
+fault_id: bc2b57f3-686d-4ec9-87ce-edf850b7e442--wrong_target--1
+type: wrong_target
+root_node: S1
+inject:
+  trigger:
+    subgoal_id: S1
+    action_type: click
+    occurrence: 1
+  mutation:
+    coordinate_offset:
+      dx: 300
+      dy: 200
+exposure:
+  mode: immediate
+expected_affected:
+- S1
+- S2
+- S3
+- S4
+- S5
+expected_preserved: []
+manual_review:
+  approved: true
+  approved_by: Codex-2026-08-18
+  approved_at: '2026-08-18T03:30:00Z'
+  notes: Offset the executor's own click onto a different/wrong UI target. Verify
+    the offset magnitude against the actual trajectory in the recovery smoke.

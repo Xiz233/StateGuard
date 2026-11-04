@@ -1,0 +1,26 @@
+fault_id: aad10cd7-9337-4b62-b704-a857848cedf2--no_effect--2
+type: no_effect
+root_node: S2
+inject:
+  trigger:
+    subgoal_id: S2
+    action_type: scroll
+    occurrence: 1
+  mutation: {}
+exposure:
+  mode: immediate
+expected_affected:
+- S2
+- S3
+- S4
+- S5
+- S6
+- S7
+expected_preserved:
+- S1
+manual_review:
+  approved: true
+  approved_by: Codex-2026-08-24
+  approved_at: '2026-08-24T08:00:00Z'
+  notes: Replace the first observed S2 page-navigation scroll with a wait; S4 copy
+    actions were not reached in clean execution.

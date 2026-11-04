@@ -1,0 +1,75 @@
+[
+  {
+    "case_id": "verified_visible_text",
+    "expected": "verified",
+    "expected_fault_type": null,
+    "instruction": "Enter the text StateGuard smoke at the current Writer cursor.",
+    "before": "/data/research/stateguard_runs/osworld_smoke/before.png",
+    "after": "/data/research/stateguard_runs/osworld_smoke/after_type.png",
+    "task_dag": {
+      "nodes": {
+        "S1": {
+          "description": "Enter StateGuard smoke at the current Writer cursor",
+          "dependencies": [],
+          "evidence_mode": "visual"
+        }
+      }
+    },
+    "proposal": {
+      "subgoal_id": "S1",
+      "intent": "Enter StateGuard smoke",
+      "expected_effect": "The visible document contains StateGuard smoke at the cursor",
+      "action": {"type": "type", "text": "StateGuard smoke"},
+      "is_finish": false
+    }
+  },
+  {
+    "case_id": "contradicted_wrong_value",
+    "expected": "contradicted",
+    "expected_fault_type": "wrong_value",
+    "instruction": "Enter the value 42 at the current Writer cursor.",
+    "before": "/data/research/stateguard_runs/osworld_smoke/before.png",
+    "after": "/data/research/stateguard_runs/osworld_smoke/after_type.png",
+    "task_dag": {
+      "nodes": {
+        "S1": {
+          "description": "Enter 42 at the current Writer cursor",
+          "dependencies": [],
+          "evidence_mode": "visual"
+        }
+      }
+    },
+    "proposal": {
+      "subgoal_id": "S1",
+      "intent": "Enter 42",
+      "expected_effect": "The visible document contains 42 at the cursor",
+      "action": {"type": "type", "text": "42"},
+      "is_finish": false
+    }
+  },
+  {
+    "case_id": "unknown_persistence",
+    "expected": "unknown",
+    "expected_fault_type": null,
+    "instruction": "Save the document so the current content persists.",
+    "before": "/data/research/stateguard_runs/osworld_smoke/before.png",
+    "after": "/data/research/stateguard_runs/osworld_smoke/after_click.png",
+    "context": "An unchanged editor screenshot cannot establish whether content was persisted to disk.",
+    "task_dag": {
+      "nodes": {
+        "S1": {
+          "description": "Persist the current Writer document",
+          "dependencies": [],
+          "evidence_mode": "persistence"
+        }
+      }
+    },
+    "proposal": {
+      "subgoal_id": "S1",
+      "intent": "Save the document",
+      "expected_effect": "The current document content is persisted to disk",
+      "action": {"type": "hotkey", "keys": ["CTRL", "S"]},
+      "is_finish": false
+    }
+  }
+]

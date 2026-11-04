@@ -1,0 +1,24 @@
+fault_id: 4127319a-8b79-4410-b58a-7a151e15f3d7--wrong_value--2
+type: wrong_value
+root_node: S2
+inject:
+  trigger:
+    subgoal_id: S2
+    action_type: type
+    occurrence: 1
+  mutation:
+    replace_text: find . -name '*.php' -exec cat {} + | wc -w
+exposure:
+  mode: immediate
+expected_affected:
+- S2
+- S3
+- S4
+expected_preserved:
+- S1
+manual_review:
+  approved: true
+  approved_by: Codex-2026-08-24
+  approved_at: '2026-08-24T04:35:00Z'
+  notes: Replace the prepared recursive line-count command with a word-count command
+    before submission; the exact command text is visually inspectable at S2.

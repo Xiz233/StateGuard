@@ -1,0 +1,28 @@
+fault_id: 8b1ce5f2-59d2-4dcc-b0b0-666a714b9a14--wrong_target--2
+type: wrong_target
+root_node: S2
+inject:
+  trigger:
+    subgoal_id: S2
+    action_type: click
+    occurrence: 2
+  mutation:
+    coordinate_offset:
+      dx: 400
+      dy: 0
+exposure:
+  mode: immediate
+expected_affected:
+- S2
+- S3
+- S4
+- S5
+- S6
+expected_preserved:
+- S1
+manual_review:
+  approved: true
+  approved_by: Codex-2026-08-24
+  approved_at: '2026-08-24T08:00:00Z'
+  notes: Offset the second real S2 calendar-mapping click; S4 was not reached in the
+    clean catalog and S2 contains multiple reproducible clicks.

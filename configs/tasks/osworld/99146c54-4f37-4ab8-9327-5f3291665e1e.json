@@ -1,0 +1,67 @@
+{
+  "nodes": [
+    {
+      "node_id": "S1",
+      "description": "Open Google Chrome browser on the system.",
+      "dependencies": [],
+      "expected_result_semantic": "Google Chrome is launched and the main browser window is visible.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S2",
+      "description": "Open the Chrome Settings page by navigating to chrome://settings or using the menu.",
+      "dependencies": [
+        "S1"
+      ],
+      "expected_result_semantic": "The Chrome Settings page is displayed, showing the settings interface.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S3",
+      "description": "Navigate to the Privacy and security section within Chrome Settings.",
+      "dependencies": [
+        "S2"
+      ],
+      "expected_result_semantic": "The Privacy and security section of Chrome Settings is visible and active.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S4",
+      "description": "Access the Clear browsing data or Site settings area to find cookie and data clearing options.",
+      "dependencies": [
+        "S3"
+      ],
+      "expected_result_semantic": "The interface for managing browsing data, cookies, and site data is displayed.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S5",
+      "description": "Locate and enable the option to clear cookies/site data or browsing data when Chrome is closed (e.g., 'Clear cookies and site data when you close all windows' toggle).",
+      "dependencies": [
+        "S4"
+      ],
+      "expected_result_semantic": "The toggle or setting that automatically deletes browsing data/cookies upon closing Chrome is enabled/turned on.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S6",
+      "description": "Verify that the auto-delete setting is confirmed active and will take effect on browser close.",
+      "dependencies": [
+        "S5"
+      ],
+      "expected_result_semantic": "The setting for clearing browsing data on close is visibly enabled, confirming the configuration is complete.",
+      "evidence_mode": "visual",
+      "required": true
+    }
+  ],
+  "graph": {
+    "approved": true,
+    "approved_by": "Codex-2026-08-15",
+    "approved_at": "2026-08-15T02:47:42.655994+00:00"
+  }
+}

@@ -1,0 +1,35 @@
+experiment:
+  name: osworld_v10_natural_executor
+  design: natural_failure
+  output_dir: /data/research/stateguard_runs/natural_failure_v10_executor
+  seed: 20260908
+  repetitions: 1
+runtime: {max_total_steps: 50, max_repair_cycles_per_fault: 3, max_unknown_verification_cycles: 4, max_executor_parse_retries: 3, max_guard_parse_retries: 1, history_window: 10}
+repair: {max_cycles: 3, max_actions_per_cycle: 20}
+trace: {max_entries: 200, keep_recent_images: 10}
+environment:
+  backend: osworld
+  benchmark_version: OSWorld-Verified
+  root: /data/research/projects/OSWorld-StateGuard
+  vm_path: /data/research/ui-mopd-repro/repos/OSWorld/docker_vm_data/Ubuntu.qcow2
+  provider: docker
+  headless: true
+  cache_dir: /data/research/stateguard_runs/cache
+  require_a11y_tree: false
+  enable_proxy: false
+  client_password: password
+  reset_ready_timeout_seconds: 180
+  reset_poll_seconds: 2
+  reset_settle_seconds: 5
+  executor_coordinate_scale: 1000
+executor: {provider: executor_qwen, require_verified_deps: false}
+guard: {provider: stateguard_luna, backend: hybrid}
+task_graph: {source: manual}
+execution: {guidance: frontier}
+verification: {policy: hybrid, repeated_action_threshold: 3, max_actions_per_subgoal: 8, unchanged_observation_threshold: 3, hybrid: {high_risk_interval: 2, medium_risk_interval: 5, checkpoint_cooldown: 2}}
+adaptive_verification: {enabled: false}
+runtime_replanning: {enabled: false}
+verification_debt: {enabled: false, soft_threshold: 2, reground_threshold: 3, hard_threshold: 5}
+checkpoint: {suppress_repeated_completion_claims: false}
+evaluation: {save_screenshots: true, save_model_responses: true}
+task_manifest: configs/poc/selected_tasks_natural.yaml

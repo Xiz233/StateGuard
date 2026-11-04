@@ -1,0 +1,24 @@
+fault_id: bc2b57f3-686d-4ec9-87ce-edf850b7e442--no_effect--2
+type: no_effect
+root_node: S1
+inject:
+  trigger:
+    subgoal_id: S1
+    action_type: click
+    occurrence: 2
+  mutation: {}
+exposure:
+  mode: immediate
+expected_affected:
+- S1
+- S2
+- S3
+- S4
+- S5
+expected_preserved: []
+manual_review:
+  approved: true
+  approved_by: Codex-2026-08-24
+  approved_at: '2026-08-24T08:00:00Z'
+  notes: Replace the second observed S1 click, which opens reminder.docx after the
+    initial window-minimize click, with a no-op wait.

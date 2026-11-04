@@ -1,0 +1,26 @@
+fault_id: c7c1e4c3-9e92-4eba-a4b8-689953975ea4--wrong_value--1
+type: wrong_value
+root_node: S2
+inject:
+  trigger:
+    subgoal_id: S2
+    action_type: type
+    occurrence: 1
+  mutation:
+    replace_text: https://invalid.example/
+exposure:
+  mode: immediate
+expected_affected:
+- S2
+- S3
+- S4
+- S5
+- S6
+expected_preserved:
+- S1
+manual_review:
+  approved: true
+  approved_by: Codex-2026-08-24
+  approved_at: '2026-08-24T08:00:00Z'
+  notes: Replace the real S2 professor-homepage URL with an invalid URL; the original
+    S5 form-entry node was not reached in clean execution.

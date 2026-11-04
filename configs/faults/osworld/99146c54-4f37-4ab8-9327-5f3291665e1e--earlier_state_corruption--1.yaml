@@ -1,0 +1,30 @@
+fault_id: 99146c54-4f37-4ab8-9327-5f3291665e1e--earlier_state_corruption--1
+type: earlier_state_corruption
+root_node: S2
+inject:
+  trigger:
+    subgoal_id: S2
+    action_type: click
+    occurrence: 1
+  mutation:
+    coordinate_offset:
+      dx: 0
+      dy: 150
+exposure:
+  mode: delayed
+  trigger:
+    subgoal_id: S5
+expected_affected:
+- S2
+- S3
+- S4
+- S5
+- S6
+expected_preserved:
+- S1
+manual_review:
+  approved: true
+  approved_by: Codex-2026-08-18
+  approved_at: '2026-08-18T03:30:00Z'
+  notes: Corrupt an early dependency action; exposure is scheduled at a downstream
+    node to exercise latent corruption localization.

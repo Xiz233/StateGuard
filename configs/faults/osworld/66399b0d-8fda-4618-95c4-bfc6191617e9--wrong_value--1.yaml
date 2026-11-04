@@ -1,0 +1,26 @@
+fault_id: 66399b0d-8fda-4618-95c4-bfc6191617e9--wrong_value--1
+type: wrong_value
+root_node: S4
+inject:
+  trigger:
+    subgoal_id: S4
+    action_type: type
+    occurrence: 1
+  mutation:
+    replace_text: '3'
+exposure:
+  mode: immediate
+expected_affected:
+- S4
+- S5
+- S6
+expected_preserved:
+- S1
+- S2
+- S3
+manual_review:
+  approved: true
+  approved_by: Codex-2026-08-18
+  approved_at: '2026-08-18T03:30:00Z'
+  notes: Replace the executor's typed text with a concrete wrong value/command. Verify
+    the executor actually issues a type action for this node.

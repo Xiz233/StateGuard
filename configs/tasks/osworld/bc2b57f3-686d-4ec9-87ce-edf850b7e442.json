@@ -1,0 +1,57 @@
+{
+  "nodes": [
+    {
+      "node_id": "S1",
+      "description": "Locate and open the file 'reminder.docx' on the desktop to read the assignment requirements.",
+      "dependencies": [],
+      "expected_result_semantic": "The document 'reminder.docx' is opened and its contents are visible.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S2",
+      "description": "Read and comprehend the assignment requirements listed in 'reminder.docx'.",
+      "dependencies": [
+        "S1"
+      ],
+      "expected_result_semantic": "The user has reviewed the full content of the requirements document and understands what modifications are needed.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S3",
+      "description": "Identify and open the assignment file that needs to be modified, based on context from the requirements document.",
+      "dependencies": [
+        "S2"
+      ],
+      "expected_result_semantic": "The relevant assignment file is opened and ready for editing.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S4",
+      "description": "Modify the assignment document according to the requirements specified in 'reminder.docx'.",
+      "dependencies": [
+        "S3"
+      ],
+      "expected_result_semantic": "The assignment document has been updated to align with the listed requirements.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S5",
+      "description": "Save the modified assignment file to persist the changes.",
+      "dependencies": [
+        "S4"
+      ],
+      "expected_result_semantic": "The modified assignment is saved successfully without data loss.",
+      "evidence_mode": "persistence",
+      "required": true
+    }
+  ],
+  "graph": {
+    "approved": true,
+    "approved_by": "Codex-2026-08-15",
+    "approved_at": "2026-08-15T02:47:42.673644+00:00"
+  }
+}

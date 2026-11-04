@@ -1,17 +1,41 @@
 providers:
-  stateguard_api:
+  # Primary Guard for v10 natural-failure experiments.
+  stateguard_luna:
+    type: openai_responses
+    base_url: https://opencode.ai/zen/go/v1
+    api_key_env: OPENCODE_GO_API_KEY
+    model: gpt-5.6-luna
+    temperature: 0.0
+    timeout_seconds: 180
+    max_retries: 3
+    max_tokens: 4096
+  # Retained comparison provider; historical configs may call stateguard_api.
+  stateguard_qwen:
     type: openai_compatible
-    base_url: ${STATEGUARD_BASE_URL}
-    api_key_env: STATEGUARD_API_KEY
-    model: ${STATEGUARD_MODEL}
+    base_url: https://opencode.ai/zen/go/v1
+    api_key_env: OPENCODE_GO_API_KEY
+    model: qwen3.7-plus
+    temperature: 0.0
+    timeout_seconds: 180
+    max_retries: 3
+    max_tokens: 4096
+  stateguard_api:
+    type: anthropic_compatible
+    base_url: https://opencode.ai/zen/go/v1
+    api_key_env: OPENCODE_GO_API_KEY
+    model: qwen3.7-plus
+    temperature: 0.0
+    timeout_seconds: 180
+    max_retries: 3
+    max_tokens: 4096
   executor_qwen:
     type: openai_compatible
     base_url: ${EXECUTOR_BASE_URL}
     api_key_env: EXECUTOR_API_KEY
     model: ${EXECUTOR_MODEL}
 roles:
-  stateguard: {provider: stateguard_api}
-  task_compiler: {provider: stateguard_api, enabled_for_poc: false}
+  stateguard: {provider: stateguard_luna}
+  task_compiler: {provider: stateguard_luna, enabled_for_poc: false}
   executor: {provider: executor_qwen}
 runtime:
   max_total_steps: 50

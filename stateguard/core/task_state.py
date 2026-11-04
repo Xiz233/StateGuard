@@ -3,7 +3,9 @@ and JSON round-trip (指引.txt §10)."""
 
 from __future__ import annotations
 
-from .schema import NodeStatus, TaskNode, Evidence
+from copy import deepcopy
+
+from .schema import NodeStatus, TaskNode, Evidence, SuspicionReason
 
 
 class IllegalTransitionError(Exception):
@@ -16,8 +18,16 @@ class IllegalTransitionError(Exception):
 _ALLOWED: dict[NodeStatus, set[NodeStatus]] = {
     NodeStatus.PENDING: {NodeStatus.ACTIVE},
     NodeStatus.ACTIVE: {NodeStatus.EXECUTED, NodeStatus.FAILED, NodeStatus.STALE},
-    NodeStatus.EXECUTED: {NodeStatus.VERIFIED, NodeStatus.FAILED, NodeStatus.STALE},
-    NodeStatus.VERIFIED: {NodeStatus.STALE, NodeStatus.FAILED},
+    NodeStatus.EXECUTED: {
+        NodeStatus.VERIFIED, NodeStatus.SUSPICIOUS, NodeStatus.UNVERIFIABLE,
+        NodeStatus.FAILED, NodeStatus.STALE,
+    },
+    NodeStatus.VERIFIED: {NodeStatus.SUSPICIOUS, NodeStatus.STALE, NodeStatus.FAILED},
+    NodeStatus.SUSPICIOUS: {
+        NodeStatus.VERIFIED, NodeStatus.UNVERIFIABLE, NodeStatus.FAILED,
+        NodeStatus.ACTIVE, NodeStatus.STALE,
+    },
+    NodeStatus.UNVERIFIABLE: {NodeStatus.ACTIVE},
     NodeStatus.FAILED: {NodeStatus.ACTIVE},
     NodeStatus.STALE: {NodeStatus.ACTIVE, NodeStatus.FAILED},
 }
@@ -54,9 +64,32 @@ class VerifiedTaskState:
             raise ValueError(f"cannot mark {node_id} VERIFIED without evidence (指引 §8)")
         self._transition(node_id, NodeStatus.VERIFIED)
         self.nodes[node_id].evidence = list(evs)
+        self.nodes[node_id].trust_score = min(1.0, self.nodes[node_id].trust_score + 0.2)
+        self.nodes[node_id].suspicion_reason = None
+        self.nodes[node_id].suspicious_since_step = None
+
+    def mark_suspicious(self, node_id: str, reason: str = "",
+                        step_id: int | None = None) -> None:
+        node = self.nodes[node_id]
+        if node.status != NodeStatus.SUSPICIOUS:
+            node = self._transition(node_id, NodeStatus.SUSPICIOUS)
+        node.trust_score = max(0.0, node.trust_score - 0.2)
+        if reason:
+            node.suspicion_reason = reason
+        if step_id is not None:
+            node.suspicious_since_step = step_id
+
+    def adjust_trust(self, node_id: str, delta: float) -> None:
+        node = self.nodes[node_id]
+        node.trust_score = min(1.0, max(0.0, node.trust_score + delta))
 
     def mark_failed(self, node_id: str) -> None:
         self._transition(node_id, NodeStatus.FAILED)
+        self.nodes[node_id].trust_score = 0.0
+
+    def mark_unverifiable(self, node_id: str, reason: str = "") -> None:
+        node = self._transition(node_id, NodeStatus.UNVERIFIABLE)
+        node.suspicion_reason = reason or SuspicionReason.VERIFICATION_STAGNATION.value
 
     def mark_stale(self, node_ids: list[str]) -> None:
         for nid in node_ids:
@@ -88,7 +121,12 @@ class VerifiedTaskState:
         return sorted(self.nodes).index(node_id)
 
     def apply(self, updates: list[dict]) -> None:
-        """Apply guard-emitted state updates; illegal sequences raise."""
+        """Atomically apply guard-emitted state updates."""
+        shadow = VerifiedTaskState(deepcopy(self.nodes))
+        shadow._apply_in_place(updates)
+        self.nodes = shadow.nodes
+
+    def _apply_in_place(self, updates: list[dict]) -> None:
         for u in updates:
             op = u["op"]
             if op == "stale":
@@ -101,8 +139,14 @@ class VerifiedTaskState:
                 self.mark_executed(nid)
             elif op == "verify":
                 self.mark_verified(nid, Evidence.from_dict(u["evidence"]))
+            elif op == "suspicious":
+                self.mark_suspicious(nid, u.get("reason", ""), u.get("step_id"))
+            elif op == "trust":
+                self.adjust_trust(nid, float(u["delta"]))
             elif op == "fail":
                 self.mark_failed(nid)
+            elif op == "unverifiable":
+                self.mark_unverifiable(nid, u.get("reason", ""))
             else:
                 raise ValueError(f"unknown update op {op!r}")
 

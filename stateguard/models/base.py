@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -12,6 +13,7 @@ class ModelResponse:
     usage: dict | None
     latency_seconds: float
     raw_response: dict | None = None
+    attempts: list[dict[str, Any]] | None = None
 
 
 class MultimodalModelClient(ABC):

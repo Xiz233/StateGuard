@@ -1,0 +1,67 @@
+{
+  "nodes": [
+    {
+      "node_id": "S1",
+      "description": "Identify the calendar grid structure, including the arrangement of rows and columns that represent days of the month.",
+      "dependencies": [],
+      "expected_result_semantic": "The calendar grid layout is understood, including which cells correspond to which days.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S2",
+      "description": "Determine the day-of-week labels or infer the mapping of columns/rows to days of the week (Monday through Sunday).",
+      "dependencies": [
+        "S1"
+      ],
+      "expected_result_semantic": "The mapping between calendar cells and their corresponding days of the week is established.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S3",
+      "description": "Identify all cells that correspond to Saturday and Sunday based on the day-of-week mapping.",
+      "dependencies": [
+        "S2"
+      ],
+      "expected_result_semantic": "All weekend cells (Saturday and Sunday) in the calendar are identified and distinguished from weekday cells.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S4",
+      "description": "Set the background color of each identified Saturday and Sunday cell to red (#ff0000).",
+      "dependencies": [
+        "S3"
+      ],
+      "expected_result_semantic": "All weekend cells have their background color changed to #ff0000 (red).",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S5",
+      "description": "Verify that only weekend cells were modified and no other cells (weekdays, headers, or blank regions) were touched.",
+      "dependencies": [
+        "S4"
+      ],
+      "expected_result_semantic": "Only Saturday and Sunday cells have red backgrounds; all other cells remain unchanged.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S6",
+      "description": "Save the calendar workbook with the weekend highlighting applied.",
+      "dependencies": [
+        "S5"
+      ],
+      "expected_result_semantic": "The workbook is persisted with the intended weekend cells highlighted red and unrelated cells unchanged.",
+      "evidence_mode": "persistence",
+      "required": true
+    }
+  ],
+  "graph": {
+    "approved": true,
+    "approved_by": "Codex-2026-08-15",
+    "approved_at": "2026-08-15T02:47:42.652503+00:00"
+  }
+}

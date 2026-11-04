@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    {
+      "node_id": "S1",
+      "description": "In the open terminal, create output.txt with exactly three lines (1<br/>, 2<br/>, 3<br/>) and display the saved file contents for verification.",
+      "dependencies": [],
+      "expected_result_semantic": "The terminal visibly shows exactly '1<br/>', '2<br/>', and '3<br/>' on separate lines after output.txt has been written.",
+      "evidence_mode": "hybrid",
+      "required": true
+    }
+  ],
+  "graph": {
+    "approved": true,
+    "approved_by": "Codex-2026-08-15-terminal-observability-review",
+    "approved_at": "2026-08-15T04:07:42Z"
+  }
+}

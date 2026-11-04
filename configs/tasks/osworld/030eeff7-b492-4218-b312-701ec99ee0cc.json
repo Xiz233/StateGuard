@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "node_id": "S1",
+      "description": "Open Chrome and navigate to the Settings page.",
+      "dependencies": [],
+      "expected_result_semantic": "Chrome Settings page is displayed.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S2",
+      "description": "Open the Privacy and security section within Settings.",
+      "dependencies": [
+        "S1"
+      ],
+      "expected_result_semantic": "The Privacy and security subsection of Chrome Settings is visible.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S3",
+      "description": "Open Third-party cookies from Privacy and security to reach the tracking controls.",
+      "dependencies": [
+        "S2"
+      ],
+      "expected_result_semantic": "The Third-party cookies page is open and its tracking controls are visible.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S4",
+      "description": "Enable the 'Send a Do Not Track request with your browsing traffic' toggle.",
+      "dependencies": [
+        "S3"
+      ],
+      "expected_result_semantic": "After the confirmation dialog closes, the Do Not Track toggle remains enabled; Chrome settings auto-save this preference.",
+      "evidence_mode": "hybrid",
+      "required": true
+    }
+  ],
+  "graph": {
+    "approved": true,
+    "approved_by": "Codex-2026-08-15-persistence-review",
+    "approved_at": "2026-08-15T03:39:30Z"
+  }
+}

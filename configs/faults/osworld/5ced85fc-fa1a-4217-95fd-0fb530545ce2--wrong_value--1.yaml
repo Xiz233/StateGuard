@@ -1,0 +1,21 @@
+fault_id: 5ced85fc-fa1a-4217-95fd-0fb530545ce2--wrong_value--1
+type: wrong_value
+root_node: S1
+inject:
+  trigger:
+    subgoal_id: S1
+    action_type: type
+    occurrence: 1
+  mutation:
+    replace_text: echo -e '1<br/>\n2<br/>\n33<br/>' > output.txt
+exposure:
+  mode: immediate
+expected_affected:
+- S1
+expected_preserved: []
+manual_review:
+  approved: true
+  approved_by: Codex-2026-08-18
+  approved_at: '2026-08-18T03:30:00Z'
+  notes: Replace the executor's typed text with a concrete wrong value/command. Verify
+    the executor actually issues a type action for this node.

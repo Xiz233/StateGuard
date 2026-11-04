@@ -5,17 +5,16 @@ import os
 import sys
 from pathlib import Path
 
-from stateguard.models import OpenAICompatibleModelClient, load_model_config
+from stateguard.models import create_model_client, load_model_config
 
 
 def main():
     parser = argparse.ArgumentParser(description="Run configured visual Guard fixtures")
     parser.add_argument("--config", default="configs/models.yaml")
     args = parser.parse_args()
-    required = ("STATEGUARD_API_KEY", "STATEGUARD_BASE_URL", "STATEGUARD_MODEL")
-    missing = [name for name in required if not os.getenv(name)]
-    if missing:
-        sys.exit("BLOCKED_BY_CREDENTIAL: " + ", ".join(missing))
+    provider = load_model_config(args.config)["stateguard_api"]
+    if not os.getenv(provider.api_key_env):
+        sys.exit("BLOCKED_BY_CREDENTIAL: " + provider.api_key_env)
     fixtures = Path("tests/assets/transitions")
     cases = {
         "correct": "verified",
@@ -26,7 +25,7 @@ def main():
               or not (fixtures / name / "after.png").exists()]
     if absent:
         sys.exit("BLOCKED_BY_ASSET: " + ", ".join(absent))
-    client = OpenAICompatibleModelClient(load_model_config(args.config)["stateguard_api"])
+    client = create_model_client(provider)
     for name, expected in cases.items():
         response = client.generate([{"role": "user", "content":
             "Judge the before/after transition. Return JSON with judgement and fault_root."}],

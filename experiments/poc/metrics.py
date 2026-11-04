@@ -21,7 +21,9 @@ def preservation_metrics(verified_before_fault, affected, invalidated, repair_ta
 
 
 def false_intervention_metrics(events, certified_clean):
-    count = len(events) if certified_clean else 0
+    count = sum(
+        event.get("intervention_type") == "repair_request" for event in events
+    ) if certified_clean else 0
     return {"guard_intervention_count": len(events), "certified_clean": certified_clean,
             "false_intervention_episode": bool(count),
             "false_intervention_event_count": count}
@@ -42,6 +44,24 @@ def episode_metrics(result, fault_spec, graph):
         "repair_radius": len(set(result.reactivated_nodes)),
         "repair_cycle_count": result.repair_cycle_count,
         "repair_action_count": result.repair_action_count,
+        "repair_budget_exhaustions": result.repair_budget_exhaustions,
+        "suspicious_checkpoint_count": result.suspicious_checkpoint_count,
+        "plan_revision_count": result.plan_revision_count,
+        "local_replan_count": result.local_replan_count,
+        "local_replan_success_count": result.local_replan_success_count,
+        "contracts_generated": result.contracts_generated,
+        "contract_revision_count": result.contract_revision_count,
+        "nodes_unverifiable": result.nodes_unverifiable,
+        "verification_debt_trigger_count": result.verification_debt_trigger_count,
+        "executor_overclaim_count": result.executor_overclaim_count,
+        "executor_finish_reconciliation_count": (
+            result.executor_finish_reconciliation_count),
+        "guard_parse_fail_open_count": result.guard_parse_fail_open_count,
+        "guard_strategy_normalization_count": result.guard_strategy_normalization_count,
+        "guard_progress_update_drop_count": result.guard_progress_update_drop_count,
+        "replanner_fallback_count": result.replanner_fallback_count,
+        "trace_entry_count": result.trace_entry_count,
+        "frontier_recovery_count": result.frontier_recovery_count,
         "state_preservation_rate": result.state_preservation_rate,
         "strict_progress_preservation_rate": result.strict_progress_preservation_rate,
         "false_intervention_episode": result.false_intervention_episode,

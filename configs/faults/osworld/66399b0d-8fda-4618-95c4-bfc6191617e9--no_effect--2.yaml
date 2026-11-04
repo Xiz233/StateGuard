@@ -1,0 +1,25 @@
+fault_id: 66399b0d-8fda-4618-95c4-bfc6191617e9--no_effect--2
+type: no_effect
+root_node: S3
+inject:
+  trigger:
+    subgoal_id: S3
+    action_type: click
+    occurrence: 1
+  mutation: {}
+exposure:
+  mode: immediate
+expected_affected:
+- S3
+- S4
+- S5
+- S6
+expected_preserved:
+- S1
+- S2
+manual_review:
+  approved: true
+  approved_by: Codex-2026-08-18
+  approved_at: '2026-08-18T03:30:00Z'
+  notes: Replace the root-node action with a no-op wait so the expected effect does
+    not occur.

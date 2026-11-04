@@ -1,0 +1,67 @@
+{
+  "nodes": [
+    {
+      "node_id": "S1",
+      "description": "Open the document containing the text that needs to be converted from uppercase to lowercase.",
+      "dependencies": [],
+      "expected_result_semantic": "The target document is open and visible in the application.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S2",
+      "description": "Select all text within the document to prepare for the case conversion.",
+      "dependencies": [
+        "S1"
+      ],
+      "expected_result_semantic": "All text in the document is highlighted or selected.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S3",
+      "description": "Access the case change or text formatting option from the menu or toolbar.",
+      "dependencies": [
+        "S2"
+      ],
+      "expected_result_semantic": "The case change or text formatting menu/dropdown is open and visible.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S4",
+      "description": "Apply the lowercase transformation to the selected text.",
+      "dependencies": [
+        "S3"
+      ],
+      "expected_result_semantic": "All previously uppercase text in the document has been converted to lowercase.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S5",
+      "description": "Verify that the entire document now displays uniform lowercase text with no remaining uppercase characters.",
+      "dependencies": [
+        "S4"
+      ],
+      "expected_result_semantic": "The document text is uniformly in lowercase, confirming a polished and consistent presentation.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S6",
+      "description": "Save the document after confirming the lowercase conversion.",
+      "dependencies": [
+        "S5"
+      ],
+      "expected_result_semantic": "The document is persisted with its text converted to lowercase.",
+      "evidence_mode": "persistence",
+      "required": true
+    }
+  ],
+  "graph": {
+    "approved": true,
+    "approved_by": "Codex-2026-08-15",
+    "approved_at": "2026-08-15T02:47:42.682562+00:00"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "nodes": [
+    {
+      "node_id": "S1",
+      "description": "Open the document containing the railway train records.",
+      "dependencies": [],
+      "expected_result_semantic": "The train-record document is open and its records are visible.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S2",
+      "description": "Identify the train_id field in each record and determine which train IDs occur more than once.",
+      "dependencies": [
+        "S1"
+      ],
+      "expected_result_semantic": "Duplicate occurrences of the same train_id are identified across the document.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S3",
+      "description": "Remove duplicate train records while retaining one complete record for each distinct train_id.",
+      "dependencies": [
+        "S2"
+      ],
+      "expected_result_semantic": "The document contains one complete record per distinct train_id and no duplicate train IDs.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S4",
+      "description": "Verify that every remaining train_id is unique and that the retained records preserve the expected record format.",
+      "dependencies": [
+        "S3"
+      ],
+      "expected_result_semantic": "Each train_id appears exactly once and the remaining lines retain valid time, train, station, and platform fields.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S5",
+      "description": "Save the deduplicated train-record document.",
+      "dependencies": [
+        "S4"
+      ],
+      "expected_result_semantic": "The edited document is persisted with duplicate train IDs removed.",
+      "evidence_mode": "persistence",
+      "required": true
+    }
+  ],
+  "graph": {
+    "approved": true,
+    "approved_by": "Codex-2026-08-15",
+    "approved_at": "2026-08-15T02:47:42.647346+00:00"
+  }
+}

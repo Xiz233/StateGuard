@@ -1,0 +1,67 @@
+{
+  "nodes": [
+    {
+      "node_id": "S1",
+      "description": "Open the document where the empty table should be inserted.",
+      "dependencies": [],
+      "expected_result_semantic": "The target document is open and visible in LibreOffice Writer.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S2",
+      "description": "Open the Table menu to access table insertion options.",
+      "dependencies": [
+        "S1"
+      ],
+      "expected_result_semantic": "The Table menu is open and its items are visible.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S3",
+      "description": "Select 'Insert Table...' to open the table-creation dialog.",
+      "dependencies": [
+        "S2"
+      ],
+      "expected_result_semantic": "The Insert Table dialog is open and visible.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S4",
+      "description": "Set the table dimensions to 7 columns and 5 rows in the dialog.",
+      "dependencies": [
+        "S3"
+      ],
+      "expected_result_semantic": "The dialog shows 7 columns and 5 rows as the configured dimensions.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S5",
+      "description": "Confirm the insertion so a 7x5 empty table appears in the document.",
+      "dependencies": [
+        "S4"
+      ],
+      "expected_result_semantic": "A 7-column by 5-row empty table is visible in the document.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S6",
+      "description": "Save the document with the inserted table.",
+      "dependencies": [
+        "S5"
+      ],
+      "expected_result_semantic": "The document is persisted with the 7x5 table inserted.",
+      "evidence_mode": "persistence",
+      "required": true
+    }
+  ],
+  "graph": {
+    "approved": true,
+    "approved_by": "Codex-2026-08-18",
+    "approved_at": "2026-08-18T06:30:00+00:00"
+  }
+}

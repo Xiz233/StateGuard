@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "node_id": "S1",
+      "description": "Ensure the terminal is ready in the intended current directory.",
+      "dependencies": [],
+      "expected_result_semantic": "A terminal prompt is visible in the directory whose PHP files should be counted.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S2",
+      "description": "Type the recursive PHP line-count command into the focused terminal without submitting it yet.",
+      "dependencies": [
+        "S1"
+      ],
+      "expected_result_semantic": "The terminal input line visibly contains a command using find . -name '*.php' and a line-count aggregation, ready to execute.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S3",
+      "description": "Submit the prepared recursive line-count command with Enter.",
+      "dependencies": [
+        "S2"
+      ],
+      "expected_result_semantic": "The prepared terminal command has executed and returned to an output/prompt state.",
+      "evidence_mode": "visual",
+      "required": true
+    },
+    {
+      "node_id": "S4",
+      "description": "Verify the resulting total line count is visibly displayed in the terminal.",
+      "dependencies": [
+        "S3"
+      ],
+      "expected_result_semantic": "The terminal visibly displays the numeric total line count 54.",
+      "evidence_mode": "visual",
+      "required": true
+    }
+  ],
+  "graph": {
+    "approved": true,
+    "approved_by": "Codex-2026-08-24",
+    "approved_at": "2026-08-24T04:35:00+00:00"
+  }
+}

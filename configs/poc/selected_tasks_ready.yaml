@@ -1,0 +1,1291 @@
+seed: 20260814
+tasks:
+- task_id: 030eeff7-b492-4218-b312-701ec99ee0cc
+  instruction: Can you enable the 'Do Not Track' feature in Chrome to enhance my online
+    privacy?
+  application: chrome
+  category: chrome
+  evaluator:
+    postconfig:
+    - type: chrome_inject_js
+      parameters:
+        js: if (document.activeElement && document.activeElement.blur) { document.activeElement.blur();
+          }
+        wait_for_load: false
+    - type: sleep
+      parameters:
+        seconds: 1.0
+    - type: launch
+      parameters:
+        command:
+        - pkill
+        - chrome
+    - type: launch
+      parameters:
+        command:
+        - google-chrome
+        - --remote-debugging-port=1337
+    - type: sleep
+      parameters:
+        seconds: 3
+    func: exact_match
+    result:
+      type: enable_do_not_track
+    expected:
+      type: rule
+      rules:
+        expected: 'true'
+  setup_requirements:
+  - type: launch
+    parameters:
+      command:
+      - google-chrome
+      - --remote-debugging-port=1337
+  - type: launch
+    parameters:
+      command:
+      - socat
+      - tcp-listen:9222,fork
+      - tcp:localhost:1337
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/chrome/030eeff7-b492-4218-b312-701ec99ee0cc.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/chrome/030eeff7-b492-4218-b312-701ec99ee0cc.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/030eeff7-b492-4218-b312-701ec99ee0cc.json
+  faults:
+  - fault_id: 030eeff7-b492-4218-b312-701ec99ee0cc--earlier_state_corruption--1
+    type: earlier_state_corruption
+    root_node: S2
+    inject:
+      trigger:
+        subgoal_id: S2
+        action_type: click
+        occurrence: 1
+      mutation:
+        coordinate_offset:
+          dx: 0
+          dy: 150
+    exposure:
+      mode: delayed
+      trigger:
+        subgoal_id: S4
+    expected_affected:
+    - S2
+    - S3
+    - S4
+    expected_preserved:
+    - S1
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Corrupt an early dependency action; exposure is scheduled at a downstream
+        node to exercise latent corruption localization.
+  - fault_id: 030eeff7-b492-4218-b312-701ec99ee0cc--wrong_target--2
+    type: wrong_target
+    root_node: S4
+    inject:
+      trigger:
+        subgoal_id: S4
+        action_type: click
+        occurrence: 1
+      mutation:
+        coordinate_offset:
+          dx: 400
+          dy: 0
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S4
+    expected_preserved:
+    - S1
+    - S2
+    - S3
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Offset the executor's own click onto a different/wrong UI target. Verify
+        the offset magnitude against the actual trajectory in the recovery smoke.
+- task_id: 3680a5ee-6870-426a-a997-eba929a0d25c
+  instruction: I have file1.xlsx and file2.ods on my Desktop, each containing a single
+    column. Using only the command line, help me merge these two columns into a single
+    column by concatenating the strings from both rows, save the result as ~/Desktop/output.csv,
+    and open it in LibreOffice Calc from the terminal
+  application: libreoffice_calc
+  category: calc
+  evaluator:
+    func:
+    - check_include_exclude
+    - compare_csv
+    conj: and
+    result:
+    - type: vm_command_line
+      command:
+      - /bin/bash
+      - -c
+      - output=$(ps aux | grep "[s]office" | awk '{print $7}' | grep -E "pts/|tty");
+        if [ -z "$output" ]; then echo "use no terminal"; else echo "use terminal";
+        fi;
+    - type: vm_file
+      path: /home/user/Desktop/output.csv
+      dest: output.csv
+    expected:
+    - type: rule
+      rules:
+        include:
+        - use terminal
+    - type: cloud_file
+      multi: true
+      path:
+      - https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/multi_apps/3680a5ee-6870-426a-a997-eba929a0d25c/output.csv
+      - https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/multi_apps/3680a5ee-6870-426a-a997-eba929a0d25c/output_gold2.csv
+      - https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/multi_apps/3680a5ee-6870-426a-a997-eba929a0d25c/output_gold3.csv
+      dest:
+      - output_gold.csv
+      - output_gold2.csv
+      - output_gold3.csv
+      gives:
+      - 0
+      - 1
+      - 2
+  setup_requirements:
+  - type: download
+    parameters:
+      files:
+      - url: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/multi_apps/3680a5ee-6870-426a-a997-eba929a0d25c/file1.xlsx
+        path: /home/user/Desktop/file1.xlsx
+      - url: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/multi_apps/3680a5ee-6870-426a-a997-eba929a0d25c/file2.ods
+        path: /home/user/Desktop/file2.ods
+  - type: execute
+    parameters:
+      command: 'export DBUS_SESSION_BUS_ADDRESS=''unix:path=/run/user/1000/bus''
+
+        gnome-terminal --maximize --working-directory=/home/user/Desktop'
+      shell: true
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/multi_apps/3680a5ee-6870-426a-a997-eba929a0d25c.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/multi_apps/3680a5ee-6870-426a-a997-eba929a0d25c.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/3680a5ee-6870-426a-a997-eba929a0d25c.json
+  faults:
+  - fault_id: 3680a5ee-6870-426a-a997-eba929a0d25c--earlier_state_corruption--1
+    type: earlier_state_corruption
+    root_node: S1
+    inject:
+      trigger:
+        subgoal_id: S1
+        action_type: type
+        occurrence: 1
+      mutation:
+        replace_text: ssconvert file1.xlsx file1.csv
+    exposure:
+      mode: delayed
+      trigger:
+        subgoal_id: S4
+    expected_affected:
+    - S1
+    - S2
+    - S3
+    - S4
+    - S5
+    expected_preserved: []
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-24
+      approved_at: '2026-08-24T08:00:00Z'
+      notes: Replace the first observed S1 terminal command with a premature one-file
+        conversion while retaining downstream exposure at S4.
+  - fault_id: 3680a5ee-6870-426a-a997-eba929a0d25c--wrong_value--2
+    type: wrong_value
+    root_node: S1
+    inject:
+      trigger:
+        subgoal_id: S1
+        action_type: type
+        occurrence: 1
+      mutation:
+        replace_text: ls -la missing-file1.xlsx missing-file2.ods
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S1
+    - S2
+    - S3
+    - S4
+    - S5
+    expected_preserved: []
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-24
+      approved_at: '2026-08-24T08:00:00Z'
+      notes: Replace the first real S1 inspection command with incorrect input filenames;
+        S1 type actions are present in the clean catalog.
+- task_id: 4127319a-8b79-4410-b58a-7a151e15f3d7
+  instruction: Use terminal command to count all the lines of all php files in current
+    directory recursively, show the result on the terminal
+  application: os
+  category: file
+  evaluator:
+    func: check_include_exclude
+    result:
+      type: vm_terminal_output
+    expected:
+      type: rule
+      rules:
+        include:
+        - '54'
+        exclude: []
+  setup_requirements:
+  - type: download
+    parameters:
+      files:
+      - url: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/os/4127319a-8b79-4410-b58a-7a151e15f3d7/setup.sh
+        path: setup.sh
+  - type: execute
+    parameters:
+      command: chmod +x setup.sh
+      shell: true
+  - type: execute
+    parameters:
+      command: bash ./setup.sh
+      shell: true
+  - type: execute
+    parameters:
+      command: 'export DBUS_SESSION_BUS_ADDRESS=''unix:path=/run/user/1000/bus''
+
+        xdg-open /home/user/project'
+      shell: true
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/os/4127319a-8b79-4410-b58a-7a151e15f3d7.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/os/4127319a-8b79-4410-b58a-7a151e15f3d7.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/4127319a-8b79-4410-b58a-7a151e15f3d7.json
+  faults:
+  - fault_id: 4127319a-8b79-4410-b58a-7a151e15f3d7--earlier_state_corruption--1
+    type: earlier_state_corruption
+    root_node: S2
+    inject:
+      trigger:
+        subgoal_id: S2
+        action_type: type
+        occurrence: 1
+      mutation:
+        replace_text: find . -maxdepth 1 -name '*.php'
+    exposure:
+      mode: delayed
+      trigger:
+        subgoal_id: S4
+    expected_affected:
+    - S2
+    - S3
+    - S4
+    expected_preserved:
+    - S1
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-24
+      approved_at: '2026-08-24T04:35:00Z'
+      notes: Corrupt the visible prepared command at S2 by removing recursion; submission
+        and final numeric verification remain downstream at S3 and S4.
+  - fault_id: 4127319a-8b79-4410-b58a-7a151e15f3d7--wrong_value--2
+    type: wrong_value
+    root_node: S2
+    inject:
+      trigger:
+        subgoal_id: S2
+        action_type: type
+        occurrence: 1
+      mutation:
+        replace_text: find . -name '*.php' -exec cat {} + | wc -w
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S2
+    - S3
+    - S4
+    expected_preserved:
+    - S1
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-24
+      approved_at: '2026-08-24T04:35:00Z'
+      notes: Replace the prepared recursive line-count command with a word-count command
+        before submission; the exact command text is visually inspectable at S2.
+- task_id: 5ced85fc-fa1a-4217-95fd-0fb530545ce2
+  instruction: Append "<br/>" to the end of each line in "1\n2\n3" and save in output.txt
+  application: os
+  category: file
+  evaluator:
+    postconfig:
+    - type: download
+      parameters:
+        files:
+        - url: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/os/5ced85fc-fa1a-4217-95fd-0fb530545ce2/eval.sh
+          path: eval.sh
+    - type: execute
+      parameters:
+        command: chmod +x eval.sh
+        shell: true
+    func: check_include_exclude
+    result:
+      type: vm_command_line
+      command: bash eval.sh
+      shell: true
+    expected:
+      type: rule
+      rules:
+        include:
+        - 'Success: The task has been completed correctly.'
+        exclude: []
+  setup_requirements:
+  - type: execute
+    parameters:
+      command:
+      - python
+      - -c
+      - import pyautogui; import time; time.sleep(0.5); pyautogui.click({SCREEN_WIDTH_HALF},
+        {SCREEN_HEIGHT_HALF}); time.sleep(0.5); pyautogui.hotkey('ctrl', 'alt', 't');
+        time.sleep(0.5)
+  - type: activate_window
+    parameters:
+      window_name: Terminal
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/os/5ced85fc-fa1a-4217-95fd-0fb530545ce2.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/os/5ced85fc-fa1a-4217-95fd-0fb530545ce2.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/5ced85fc-fa1a-4217-95fd-0fb530545ce2.json
+  faults:
+  - fault_id: 5ced85fc-fa1a-4217-95fd-0fb530545ce2--wrong_value--1
+    type: wrong_value
+    root_node: S1
+    inject:
+      trigger:
+        subgoal_id: S1
+        action_type: type
+        occurrence: 1
+      mutation:
+        replace_text: echo -e '1<br/>\n2<br/>\n33<br/>' > output.txt
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S1
+    expected_preserved: []
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Replace the executor's typed text with a concrete wrong value/command.
+        Verify the executor actually issues a type action for this node.
+  - fault_id: 5ced85fc-fa1a-4217-95fd-0fb530545ce2--no_effect--2
+    type: no_effect
+    root_node: S1
+    inject:
+      trigger:
+        subgoal_id: S1
+        action_type: type
+        occurrence: 1
+      mutation: {}
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S1
+    expected_preserved: []
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Replace the root-node action with a no-op wait so the expected effect
+        does not occur.
+- task_id: 6f81754e-285d-4ce0-b59e-af7edb02d108
+  instruction: 'A certain railway company in Hong Kong uses a signaling system to
+    keep track of trains in its railway system. Each line in the docx file represents
+    a train calling at a station from 0600 to 1200 on 2022-09-22, and has the following
+    format: time_HH:MM:SS, train_id, station_id, platform_no.. I want to remove duplicated
+    train ids in order to know how many different trains are running from 0600 to
+    1200. Could you help me on this? I am doing it manually and it is very inefficient.'
+  application: libreoffice_writer
+  category: writer
+  evaluator:
+    postconfig:
+    - type: activate_window
+      parameters:
+        window_name: HK_train_record.docx - LibreOffice Writer
+        strict: true
+    - type: sleep
+      parameters:
+        seconds: 0.5
+    - type: execute
+      parameters:
+        command:
+        - python
+        - -c
+        - 'import pyautogui; import time; pyautogui.hotkey(''ctrl'', ''s''); time.sleep(0.5); '
+    func: compare_unique_train_records
+    result:
+      type: vm_file
+      path: /home/user/Desktop/HK_train_record.docx
+      dest: HK_train_record.docx
+    expected:
+      type: cloud_file
+      path:
+      - https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/libreoffice_writer/6f81754e-285d-4ce0-b59e-af7edb02d108/HK_train_record_Gold.docx
+      - https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/libreoffice_writer/6f81754e-285d-4ce0-b59e-af7edb02d108/HK_train_record.docx
+      dest:
+      - HK_train_record_Gold.docx
+      - HK_train_record_Original.docx
+      multi: true
+      gives:
+      - 0
+      - 1
+  setup_requirements:
+  - type: download
+    parameters:
+      files:
+      - url: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/libreoffice_writer/6f81754e-285d-4ce0-b59e-af7edb02d108/HK_train_record.docx
+        path: /home/user/Desktop/HK_train_record.docx
+  - type: open
+    parameters:
+      path: /home/user/Desktop/HK_train_record.docx
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/libreoffice_writer/6f81754e-285d-4ce0-b59e-af7edb02d108.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/libreoffice_writer/6f81754e-285d-4ce0-b59e-af7edb02d108.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/6f81754e-285d-4ce0-b59e-af7edb02d108.json
+  faults:
+  - fault_id: 6f81754e-285d-4ce0-b59e-af7edb02d108--wrong_target--1
+    type: wrong_target
+    root_node: S2
+    inject:
+      trigger:
+        subgoal_id: S2
+        action_type: click
+        occurrence: 1
+      mutation:
+        coordinate_offset:
+          dx: 300
+          dy: 200
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S2
+    - S3
+    - S4
+    - S5
+    expected_preserved:
+    - S1
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-24
+      approved_at: '2026-08-24T08:00:00Z'
+      notes: Offset the first real S2 click used while moving train data into a processing
+        context; S3 was not reached in clean execution.
+  - fault_id: 6f81754e-285d-4ce0-b59e-af7edb02d108--no_effect--2
+    type: no_effect
+    root_node: S2
+    inject:
+      trigger:
+        subgoal_id: S2
+        action_type: click
+        occurrence: 1
+      mutation: {}
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S2
+    - S3
+    - S4
+    - S5
+    expected_preserved:
+    - S1
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Replace the root-node action with a no-op wait so the expected effect
+        does not occur.
+- task_id: 8b1ce5f2-59d2-4dcc-b0b0-666a714b9a14
+  instruction: Given a partial calendar, please highlight all the weekends (Satureday
+    & Sunday) by setting the cell background as red (#ff0000). Finish the work and
+    don't touch irrelevant regions, even if they are blank.
+  application: libreoffice_calc
+  category: calc
+  evaluator:
+    postconfig:
+    - type: activate_window
+      parameters:
+        window_name: Calendar_Highlight_Weekend_Days.xlsx - LibreOffice Calc
+        strict: true
+    - type: sleep
+      parameters:
+        seconds: 0.5
+    - type: execute
+      parameters:
+        command:
+        - python
+        - -c
+        - import pyautogui; pyautogui.hotkey("ctrl", "s");
+    - type: sleep
+      parameters:
+        seconds: 0.5
+    func: compare_table
+    expected:
+      type: cloud_file
+      path: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/libreoffice_calc/8b1ce5f2-59d2-4dcc-b0b0-666a714b9a14/Calendar_Highlight_Weekend_Days_gold.xlsx
+      dest: Calendar_Highlight_Weekend_Days_gold.xlsx
+    result:
+      type: vm_file
+      path: /home/user/Calendar_Highlight_Weekend_Days.xlsx
+      dest: Calendar_Highlight_Weekend_Days.xlsx
+    options:
+      rules:
+      - type: sheet_data
+        sheet_idx0: 0
+        sheet_idx1: EI0
+      - type: style
+        sheet_idx0: 0
+        sheet_idx1: EI0
+        props:
+        - bgcolor
+  setup_requirements:
+  - type: download
+    parameters:
+      files:
+      - url: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/libreoffice_calc/8b1ce5f2-59d2-4dcc-b0b0-666a714b9a14/Calendar_Highlight_Weekend_Days.xlsx
+        path: /home/user/Calendar_Highlight_Weekend_Days.xlsx
+  - type: open
+    parameters:
+      path: /home/user/Calendar_Highlight_Weekend_Days.xlsx
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/libreoffice_calc/8b1ce5f2-59d2-4dcc-b0b0-666a714b9a14.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/libreoffice_calc/8b1ce5f2-59d2-4dcc-b0b0-666a714b9a14.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/8b1ce5f2-59d2-4dcc-b0b0-666a714b9a14.json
+  faults:
+  - fault_id: 8b1ce5f2-59d2-4dcc-b0b0-666a714b9a14--earlier_state_corruption--1
+    type: earlier_state_corruption
+    root_node: S2
+    inject:
+      trigger:
+        subgoal_id: S2
+        action_type: click
+        occurrence: 1
+      mutation:
+        coordinate_offset:
+          dx: 300
+          dy: 200
+    exposure:
+      mode: delayed
+      trigger:
+        subgoal_id: S5
+    expected_affected:
+    - S2
+    - S3
+    - S4
+    - S5
+    - S6
+    expected_preserved:
+    - S1
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Corrupt an early dependency action; exposure is scheduled at a downstream
+        node to exercise latent corruption localization.
+  - fault_id: 8b1ce5f2-59d2-4dcc-b0b0-666a714b9a14--wrong_target--2
+    type: wrong_target
+    root_node: S2
+    inject:
+      trigger:
+        subgoal_id: S2
+        action_type: click
+        occurrence: 2
+      mutation:
+        coordinate_offset:
+          dx: 400
+          dy: 0
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S2
+    - S3
+    - S4
+    - S5
+    - S6
+    expected_preserved:
+    - S1
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-24
+      approved_at: '2026-08-24T08:00:00Z'
+      notes: Offset the second real S2 calendar-mapping click; S4 was not reached
+        in the clean catalog and S2 contains multiple reproducible clicks.
+- task_id: 99146c54-4f37-4ab8-9327-5f3291665e1e
+  instruction: Please help me set Chrome to delete my browsing data automatically
+    every time I close the browser.
+  application: chrome
+  category: chrome
+  evaluator:
+    postconfig:
+    - type: launch
+      parameters:
+        command:
+        - pkill
+        - chrome
+    - type: launch
+      parameters:
+        command:
+        - google-chrome
+        - --remote-debugging-port=1337
+    - type: sleep
+      parameters:
+        seconds: 3
+    func: exact_match
+    result:
+      type: data_delete_automacally
+    expected:
+      type: rule
+      rules:
+        expected: 'true'
+  setup_requirements:
+  - type: launch
+    parameters:
+      command:
+      - google-chrome
+      - --remote-debugging-port=1337
+  - type: launch
+    parameters:
+      command:
+      - socat
+      - tcp-listen:9222,fork
+      - tcp:localhost:1337
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/chrome/99146c54-4f37-4ab8-9327-5f3291665e1e.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/chrome/99146c54-4f37-4ab8-9327-5f3291665e1e.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/99146c54-4f37-4ab8-9327-5f3291665e1e.json
+  faults:
+  - fault_id: 99146c54-4f37-4ab8-9327-5f3291665e1e--earlier_state_corruption--1
+    type: earlier_state_corruption
+    root_node: S2
+    inject:
+      trigger:
+        subgoal_id: S2
+        action_type: click
+        occurrence: 1
+      mutation:
+        coordinate_offset:
+          dx: 0
+          dy: 150
+    exposure:
+      mode: delayed
+      trigger:
+        subgoal_id: S5
+    expected_affected:
+    - S2
+    - S3
+    - S4
+    - S5
+    - S6
+    expected_preserved:
+    - S1
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Corrupt an early dependency action; exposure is scheduled at a downstream
+        node to exercise latent corruption localization.
+  - fault_id: 99146c54-4f37-4ab8-9327-5f3291665e1e--wrong_target--2
+    type: wrong_target
+    root_node: S5
+    inject:
+      trigger:
+        subgoal_id: S5
+        action_type: click
+        occurrence: 1
+      mutation:
+        coordinate_offset:
+          dx: 400
+          dy: 0
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S5
+    - S6
+    expected_preserved:
+    - S1
+    - S2
+    - S3
+    - S4
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Offset the executor's own click onto a different/wrong UI target. Verify
+        the offset magnitude against the actual trajectory in the recovery smoke.
+- task_id: aad10cd7-9337-4b62-b704-a857848cedf2
+  instruction: I want to obtain a local file version of the content from the blog
+    at https://developer.apple.com/design/human-interface-guidelines/searching to
+    facilitate my own revision. Please retain the primary content on this page, specifically
+    from 'searching' to just before 'resources.' Assist me in saving this blog as
+    "notes.docx" on the desktop.
+  application: chrome
+  category: chrome
+  evaluator:
+    postconfig:
+    - type: activate_window
+      parameters:
+        window_name: notes.docx - LibreOffice Writer
+        strict: true
+    - type: sleep
+      parameters:
+        seconds: 0.5
+    - type: execute
+      parameters:
+        command:
+        - python
+        - -c
+        - 'import pyautogui; import time; pyautogui.hotkey(''ctrl'', ''s''); time.sleep(0.5); '
+    func: compare_docx_files
+    expected:
+      type: cloud_file
+      path: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/multi_apps/aad10cd7-9337-4b62-b704-a857848cedf2/notes.docx
+      dest: notes_Gold.docx
+    result:
+      type: vm_file
+      path: /home/user/Desktop/notes.docx
+      dest: notes.docx
+    options:
+      fuzzy_match: true
+  setup_requirements:
+  - type: launch
+    parameters:
+      command:
+      - google-chrome
+      - --remote-debugging-port=1337
+  - type: launch
+    parameters:
+      command:
+      - socat
+      - tcp-listen:9222,fork
+      - tcp:localhost:1337
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/multi_apps/aad10cd7-9337-4b62-b704-a857848cedf2.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/multi_apps/aad10cd7-9337-4b62-b704-a857848cedf2.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/aad10cd7-9337-4b62-b704-a857848cedf2.json
+  faults:
+  - fault_id: aad10cd7-9337-4b62-b704-a857848cedf2--wrong_value--1
+    type: wrong_value
+    root_node: S1
+    inject:
+      trigger:
+        subgoal_id: S1
+        action_type: type
+        occurrence: 1
+      mutation:
+        replace_text: https://developer.apple.com/design/human-interface-guidelines/
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S1
+    - S2
+    - S3
+    - S4
+    - S5
+    - S6
+    - S7
+    expected_preserved: []
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Replace the executor's typed text with a concrete wrong value/command.
+        Verify the executor actually issues a type action for this node.
+  - fault_id: aad10cd7-9337-4b62-b704-a857848cedf2--no_effect--2
+    type: no_effect
+    root_node: S2
+    inject:
+      trigger:
+        subgoal_id: S2
+        action_type: scroll
+        occurrence: 1
+      mutation: {}
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S2
+    - S3
+    - S4
+    - S5
+    - S6
+    - S7
+    expected_preserved:
+    - S1
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-24
+      approved_at: '2026-08-24T08:00:00Z'
+      notes: Replace the first observed S2 page-navigation scroll with a wait; S4
+        copy actions were not reached in clean execution.
+- task_id: 66399b0d-8fda-4618-95c4-bfc6191617e9
+  instruction: Could you help me insert a 7(columns)*5(rows) empty table at the point
+    of cursor?
+  application: libreoffice_writer
+  category: writer
+  evaluator:
+    postconfig:
+    - type: activate_window
+      parameters:
+        window_name: Table_Of_Work_Effort_Instructions.docx - LibreOffice Writer
+        strict: true
+    - type: sleep
+      parameters:
+        seconds: 0.5
+    - type: execute
+      parameters:
+        command:
+        - python
+        - -c
+        - 'import pyautogui; import time; pyautogui.hotkey(''ctrl'', ''s''); time.sleep(0.5); '
+    func: compare_docx_tables
+    expected:
+      type: cloud_file
+      path: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/libreoffice_writer/66399b0d-8fda-4618-95c4-bfc6191617e9/Table_Of_Work_Effort_Instructions_Gold.docx
+      dest: Table_Of_Work_Effort_Instructions_Gold.docx
+    result:
+      type: vm_file
+      path: /home/user/Desktop/Table_Of_Work_Effort_Instructions.docx
+      dest: Table_Of_Work_Effort_Instructions.docx
+  setup_requirements:
+  - type: download
+    parameters:
+      files:
+      - url: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/libreoffice_writer/66399b0d-8fda-4618-95c4-bfc6191617e9/Table_Of_Work_Effort_Instructions.docx
+        path: /home/user/Desktop/Table_Of_Work_Effort_Instructions.docx
+  - type: open
+    parameters:
+      path: /home/user/Desktop/Table_Of_Work_Effort_Instructions.docx
+  - type: execute
+    parameters:
+      command:
+      - python
+      - -c
+      - import pyautogui; import time; pyautogui.press("down", presses=40, interval=0.01);
+        time.sleep(1); pyautogui.scroll(-2)
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/libreoffice_writer/66399b0d-8fda-4618-95c4-bfc6191617e9.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/libreoffice_writer/66399b0d-8fda-4618-95c4-bfc6191617e9.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/66399b0d-8fda-4618-95c4-bfc6191617e9.json
+  faults:
+  - fault_id: 66399b0d-8fda-4618-95c4-bfc6191617e9--wrong_value--1
+    type: wrong_value
+    root_node: S4
+    inject:
+      trigger:
+        subgoal_id: S4
+        action_type: type
+        occurrence: 1
+      mutation:
+        replace_text: '3'
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S4
+    - S5
+    - S6
+    expected_preserved:
+    - S1
+    - S2
+    - S3
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Replace the executor's typed text with a concrete wrong value/command.
+        Verify the executor actually issues a type action for this node.
+  - fault_id: 66399b0d-8fda-4618-95c4-bfc6191617e9--no_effect--2
+    type: no_effect
+    root_node: S3
+    inject:
+      trigger:
+        subgoal_id: S3
+        action_type: click
+        occurrence: 1
+      mutation: {}
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S3
+    - S4
+    - S5
+    - S6
+    expected_preserved:
+    - S1
+    - S2
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Replace the root-node action with a no-op wait so the expected effect
+        does not occur.
+- task_id: bc2b57f3-686d-4ec9-87ce-edf850b7e442
+  instruction: The requirements of my data analysis assignment are listed in "reminder.docx"
+    on the desktop. Help me modify my assignment opended accordingly.
+  application: libreoffice_calc
+  category: calc
+  evaluator:
+    postconfig:
+    - type: activate_window
+      parameters:
+        window_name: workbook-with-sample-database.xlsx - LibreOffice Calc
+        strict: true
+    - type: sleep
+      parameters:
+        seconds: 0.5
+    - type: execute
+      parameters:
+        command:
+        - python
+        - -c
+        - import pyautogui; pyautogui.hotkey("ctrl", "s");
+    - type: sleep
+      parameters:
+        seconds: 5
+    func: compare_table
+    result:
+      type: vm_file
+      path: /home/user/Desktop/workbook-with-sample-database.xlsx
+      dest: workbook-with-sample-database.xlsx
+    expected:
+      type: cloud_file
+      path: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/multi_apps/bc2b57f3-686d-4ec9-87ce-edf850b7e442/workbook-with-sample-database_Gold.xlsx
+      dest: workbook-with-sample-database_Gold.xlsx
+    options:
+      rules:
+      - type: sheet_name
+      - type: sheet_data
+        sheet_idx0: RI0
+        sheet_idx1: EI0
+      - type: sheet_data
+        sheet_idx0: RI1
+        sheet_idx1: EI1
+      - type: sheet_data
+        sheet_idx0: RI2
+        sheet_idx1: EI2
+      - type: sheet_data
+        sheet_idx0: RI3
+        sheet_idx1: EI3
+      - type: sheet_data
+        sheet_idx0: RI4
+        sheet_idx1: EI4
+      - type: sheet_data
+        sheet_idx0: RI5
+        sheet_idx1: EI5
+      - type: sheet_data
+        sheet_idx0: RI6
+        sheet_idx1: EI6
+      - type: sheet_data
+        sheet_idx0: RI7
+        sheet_idx1: EI7
+  setup_requirements:
+  - type: download
+    parameters:
+      files:
+      - url: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/multi_apps/bc2b57f3-686d-4ec9-87ce-edf850b7e442/workbook-with-sample-database.xlsx
+        path: /home/user/Desktop/workbook-with-sample-database.xlsx
+      - url: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/multi_apps/bc2b57f3-686d-4ec9-87ce-edf850b7e442/reminder.docx
+        path: /home/user/Desktop/reminder.docx
+  - type: open
+    parameters:
+      path: /home/user/Desktop/workbook-with-sample-database.xlsx
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/multi_apps/bc2b57f3-686d-4ec9-87ce-edf850b7e442.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/multi_apps/bc2b57f3-686d-4ec9-87ce-edf850b7e442.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/bc2b57f3-686d-4ec9-87ce-edf850b7e442.json
+  faults:
+  - fault_id: bc2b57f3-686d-4ec9-87ce-edf850b7e442--wrong_target--1
+    type: wrong_target
+    root_node: S1
+    inject:
+      trigger:
+        subgoal_id: S1
+        action_type: click
+        occurrence: 1
+      mutation:
+        coordinate_offset:
+          dx: 300
+          dy: 200
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S1
+    - S2
+    - S3
+    - S4
+    - S5
+    expected_preserved: []
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Offset the executor's own click onto a different/wrong UI target. Verify
+        the offset magnitude against the actual trajectory in the recovery smoke.
+  - fault_id: bc2b57f3-686d-4ec9-87ce-edf850b7e442--no_effect--2
+    type: no_effect
+    root_node: S1
+    inject:
+      trigger:
+        subgoal_id: S1
+        action_type: click
+        occurrence: 2
+      mutation: {}
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S1
+    - S2
+    - S3
+    - S4
+    - S5
+    expected_preserved: []
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-24
+      approved_at: '2026-08-24T08:00:00Z'
+      notes: Replace the second observed S1 click, which opens reminder.docx after
+        the initial window-minimize click, with a no-op wait.
+- task_id: c7c1e4c3-9e92-4eba-a4b8-689953975ea4
+  instruction: I am collecting the contact information of some professors and have
+    their homepage links listed here. Assist me in completing the form by adding their
+    respective email addresses.
+  application: libreoffice_calc
+  category: calc
+  evaluator:
+    postconfig:
+    - type: activate_window
+      parameters:
+        window_name: Professor_Contact.xlsx - LibreOffice Calc
+        strict: true
+    - type: sleep
+      parameters:
+        seconds: 0.5
+    - type: execute
+      parameters:
+        command:
+        - python
+        - -c
+        - import pyautogui; pyautogui.hotkey("ctrl", "s");
+    - type: sleep
+      parameters:
+        seconds: 0.5
+    func: compare_table
+    expected:
+      type: cloud_file
+      path: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/multi_apps/c7c1e4c3-9e92-4eba-a4b8-689953975ea4/Professor_Contact_Gold.xlsx
+      dest: Professor_Contact_Gold.xlsx
+    result:
+      type: vm_file
+      path: /home/user/Desktop/Professor_Contact.xlsx
+      dest: Professor_Contact.xlsx
+    options:
+      rules:
+      - type: sheet_data
+        sheet_idx0: 0
+        sheet_idx1: EI0
+  setup_requirements:
+  - type: launch
+    parameters:
+      command:
+      - google-chrome
+      - --remote-debugging-port=1337
+  - type: launch
+    parameters:
+      command:
+      - socat
+      - tcp-listen:9222,fork
+      - tcp:localhost:1337
+  - type: download
+    parameters:
+      files:
+      - url: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/multi_apps/c7c1e4c3-9e92-4eba-a4b8-689953975ea4/Professor_Contact.xlsx
+        path: /home/user/Desktop/Professor_Contact.xlsx
+  - type: open
+    parameters:
+      path: /home/user/Desktop/Professor_Contact.xlsx
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/multi_apps/c7c1e4c3-9e92-4eba-a4b8-689953975ea4.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/multi_apps/c7c1e4c3-9e92-4eba-a4b8-689953975ea4.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/c7c1e4c3-9e92-4eba-a4b8-689953975ea4.json
+  faults:
+  - fault_id: c7c1e4c3-9e92-4eba-a4b8-689953975ea4--wrong_value--1
+    type: wrong_value
+    root_node: S2
+    inject:
+      trigger:
+        subgoal_id: S2
+        action_type: type
+        occurrence: 1
+      mutation:
+        replace_text: https://invalid.example/
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S2
+    - S3
+    - S4
+    - S5
+    - S6
+    expected_preserved:
+    - S1
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-24
+      approved_at: '2026-08-24T08:00:00Z'
+      notes: Replace the real S2 professor-homepage URL with an invalid URL; the original
+        S5 form-entry node was not reached in clean execution.
+  - fault_id: c7c1e4c3-9e92-4eba-a4b8-689953975ea4--no_effect--2
+    type: no_effect
+    root_node: S1
+    inject:
+      trigger:
+        subgoal_id: S1
+        action_type: click
+        occurrence: 1
+      mutation: {}
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S1
+    - S2
+    - S3
+    - S4
+    - S5
+    - S6
+    expected_preserved: []
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Replace the root-node action with a no-op wait so the expected effect
+        does not occur.
+- task_id: d53ff5ee-3b1a-431e-b2be-30ed2673079b
+  instruction: I am currently engaged in text processing and require assistance in
+    converting all uppercase text to lowercase within my document. This precision
+    is critical for maintaining a uniform and polished presentation. Could you help
+    me on this?
+  application: libreoffice_writer
+  category: writer
+  evaluator:
+    func: compare_docx_files
+    postconfig:
+    - type: activate_window
+      parameters:
+        window_name: presentation_instruction_2023_Feb.docx - LibreOffice Writer
+        strict: true
+    - type: sleep
+      parameters:
+        seconds: 0.5
+    - type: execute
+      parameters:
+        command:
+        - python
+        - -c
+        - 'import pyautogui; import time; pyautogui.hotkey(''ctrl'', ''s''); time.sleep(0.5); '
+    expected:
+      type: cloud_file
+      path: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/libreoffice_writer/d53ff5ee-3b1a-431e-b2be-30ed2673079b/presentation_instruction_2023_Feb_Gold.docx
+      dest: presentation_instruction_2023_Feb_Gold.docx
+    result:
+      type: vm_file
+      path: /home/user/Desktop/presentation_instruction_2023_Feb.docx
+      dest: presentation_instruction_2023_Feb.docx
+  setup_requirements:
+  - type: download
+    parameters:
+      files:
+      - url: https://huggingface.co/datasets/xlangai/ubuntu_osworld_file_cache/resolve/main/libreoffice_writer/d53ff5ee-3b1a-431e-b2be-30ed2673079b/presentation_instruction_2023_Feb.docx
+        path: /home/user/Desktop/presentation_instruction_2023_Feb.docx
+  - type: open
+    parameters:
+      path: /home/user/Desktop/presentation_instruction_2023_Feb.docx
+  source: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/libreoffice_writer/d53ff5ee-3b1a-431e-b2be-30ed2673079b.json
+  task_config_path: /data/research/projects/OSWorld-StateGuard/evaluation_examples/examples/libreoffice_writer/d53ff5ee-3b1a-431e-b2be-30ed2673079b.json
+  proxy: false
+  eligible: true
+  ineligible_reasons: []
+  graph_file: configs/tasks/osworld/d53ff5ee-3b1a-431e-b2be-30ed2673079b.json
+  faults:
+  - fault_id: d53ff5ee-3b1a-431e-b2be-30ed2673079b--earlier_state_corruption--1
+    type: earlier_state_corruption
+    root_node: S3
+    inject:
+      trigger:
+        subgoal_id: S3
+        action_type: click
+        occurrence: 1
+      mutation:
+        coordinate_offset:
+          dx: 0
+          dy: 200
+    exposure:
+      mode: delayed
+      trigger:
+        subgoal_id: S5
+    expected_affected:
+    - S3
+    - S4
+    - S5
+    - S6
+    expected_preserved:
+    - S1
+    - S2
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Corrupt an early dependency action; exposure is scheduled at a downstream
+        node to exercise latent corruption localization.
+  - fault_id: d53ff5ee-3b1a-431e-b2be-30ed2673079b--wrong_target--2
+    type: wrong_target
+    root_node: S4
+    inject:
+      trigger:
+        subgoal_id: S4
+        action_type: click
+        occurrence: 1
+      mutation:
+        coordinate_offset:
+          dx: 0
+          dy: 200
+    exposure:
+      mode: immediate
+    expected_affected:
+    - S4
+    - S5
+    - S6
+    expected_preserved:
+    - S1
+    - S2
+    - S3
+    manual_review:
+      approved: true
+      approved_by: Codex-2026-08-18
+      approved_at: '2026-08-18T03:30:00Z'
+      notes: Offset the executor's own click onto a different/wrong UI target. Verify
+        the offset magnitude against the actual trajectory in the recovery smoke.
+fault_manifest: configs/poc/fault_manifest.yaml

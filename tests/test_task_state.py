@@ -118,3 +118,19 @@ def test_mark_verified_replaces_evidence():
     st.mark_active("S1"); st.mark_executed("S1")
     st.mark_verified("S1", make_evidence(2, "second", 0.9))
     assert st.get("S1").evidence[0].description == "second"
+
+
+def test_guard_updates_are_atomic_when_a_later_transition_is_invalid():
+    st = make_state()
+    before = st.serialize()
+
+    with pytest.raises(IllegalTransitionError):
+        st.apply([
+            {"op": "active", "node_id": "S1"},
+            {"op": "verify", "node_id": "S2", "evidence": {
+                "step_id": 1, "source": "test", "description": "invalid",
+                "confidence": 1.0,
+            }},
+        ])
+
+    assert st.serialize() == before

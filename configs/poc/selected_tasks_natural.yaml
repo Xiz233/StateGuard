@@ -1,0 +1,16 @@
+# Natural-failure main experiment: task definitions are reused, fault entries are
+# deliberately stripped by the runner for experiment.design=natural_failure.
+source_manifest: configs/poc/selected_tasks_ready.yaml
+task_ids:
+  - 030eeff7-b492-4218-b312-701ec99ee0cc
+  - 3680a5ee-6870-426a-a997-eba929a0d25c
+  - 4127319a-8b79-4410-b58a-7a151e15f3d7
+  - 5ced85fc-fa1a-4217-95fd-0fb530545ce2
+  - 6f81754e-285d-4ce0-b59e-af7edb02d108
+  - 8b1ce5f2-59d2-4dcc-b0b0-666a714b9a14
+  - 99146c54-4f37-4ab8-9327-5f3291665e1e
+  - aad10cd7-9337-4b62-b704-a857848cedf2
+  - 66399b0d-8fda-4618-95c4-bfc6191617e9
+  - bc2b57f3-686d-4ec9-87ce-edf850b7e442
+  - c7c1e4c3-9e92-4eba-a4b8-689953975ea4
+  - d53ff5ee-3b1a-431e-b2be-30ed2673079b
