@@ -36,6 +36,10 @@ def environment():
         HF_HOME=os.environ.get('HF_HOME', str(Path.home() / '.cache/huggingface')),
         TMPDIR=os.environ.get('TMPDIR', '/tmp'),
         PYTHONPATH=str(REPO / 'vendor') + os.pathsep + str(REPO), PYTHONUNBUFFERED='1')
+    if os.environ.get('FUSION_STAGNATION_SHADOW') == '1':
+        for key in ('FUSION_STAGNATION_SHADOW', 'FUSION_STAGNATION_MODEL_DIR', 'FUSION_STAGNATION_HEAD'):
+            if key in os.environ:
+                env[key] = os.environ[key]
     return env
 
 

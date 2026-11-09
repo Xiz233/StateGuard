@@ -176,7 +176,7 @@ class ProgressiveTests(unittest.TestCase):
 
     def test_actual_boundary_hook_reaches_recovery_when_native_verifier_fails(self):
         from unittest.mock import Mock
-        tree=ast.parse((Path(__file__).resolve().parents[1]/'mm_agents/structagent/loop.py').read_text())
+        tree=ast.parse((Path(__file__).resolve().parents[1]/'mm_agents/structagent/loop.py').read_text(encoding='utf-8'))
         method=next(n for n in ast.walk(tree) if isinstance(n,ast.FunctionDef) and n.name=='_run_boundary_verify')
         namespace={'os':os,'json':json,'logger':None}
         exec(compile(ast.Module(body=[method],type_ignores=[]),'loop.py','exec'),namespace)
@@ -188,15 +188,26 @@ class ProgressiveTests(unittest.TestCase):
             actor_history=[],_current_snapshot=None,call_llm=None,verifier_model='test',
             ledger=SimpleNamespace(get=lambda _:outcome))
         recovery=Mock()
+        shadow=Mock()
+        sequence=Mock()
+        sequence.attach_mock(shadow, 'shadow')
+        sequence.attach_mock(recovery, 'recovery')
         modules={
             'mm_agents.structagent.core.verifier.boundary_verify':SimpleNamespace(
                 verify_milestone=lambda *a,**k:[verdict],VerifyContext=SimpleNamespace,
                 allowed_probes_for_domain=lambda _:[]),
             'mm_agents.structagent.ledger.core.ledger':SimpleNamespace(OUTCOME_VERIFIED='verified'),
             'mm_agents.structagent.ledger.support.a11y_prefilter':SimpleNamespace(prefilter_linearized_a11y=lambda **k:''),
-            'mm_agents.structagent.core.final_audit.progressive':SimpleNamespace(recover_pending=recovery)}
-        with patch.dict(sys.modules,modules),patch.dict(os.environ,{'FUSION_PROGRESSIVE':'1'}):
-            namespace['_run_boundary_verify'](self_obj,[outcome],3,None,dump_name='test.json',dump_targets=[])
+            'mm_agents.structagent.core.final_audit.progressive':SimpleNamespace(recover_pending=recovery),
+            'mm_agents.structagent.core.final_audit.stagnation':SimpleNamespace(record_shadow_score=shadow)}
+        with patch.dict(sys.modules,modules), patch.dict(os.environ,{
+                'FUSION_PROGRESSIVE':'1', 'FUSION_STAGNATION_SHADOW':'1'}):
+            boundary_verify = namespace['_run_boundary_verify']
+            boundary_verify(self_obj,[outcome],3,None,dump_name='done.json',dump_targets=[])
+            shadow.assert_not_called()
+            boundary_verify(self_obj,[outcome],4,None,dump_name='burst.json',dump_targets=[],
+                            observe_stagnation=True)
+        self.assertEqual([call[0] for call in sequence.mock_calls], ['recovery', 'shadow', 'recovery'])
         self.assertEqual(recovery.call_args.args[-1],'boundary_insufficient')
         self.assertEqual(recovery.call_args.args[-2],[outcome])
 

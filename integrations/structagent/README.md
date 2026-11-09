@@ -64,6 +64,30 @@ verification rounds per target set, and twelve progressive-verifier calls per
 task. **Task wall-time and aggregate model-call budgets are not enabled in this
 historical local configuration.** No budget policy fix is claimed by this release.
 
+## Optional stagnation shadow run
+
+The local runner can score unresolved milestones at actor-burst exit before
+progressive verification. Scores are recorded in each task's
+`stagnation_shadow.jsonl`. This mode only observes. The verifier still runs
+with its original budgets and the final DONE gate follows its usual path.
+
+Install `numpy`, CPU PyTorch and `transformers>=4.57,<5` in the fusion runtime.
+Set these variables before invoking the local runner above:
+
+```sh
+export FUSION_STAGNATION_SHADOW=1
+export FUSION_STAGNATION_MODEL_DIR=/absolute/path/to/modernbert_large
+export FUSION_STAGNATION_HEAD=/absolute/path/to/modernbert_large__causal_actions_and_observed_controls__embedding.npz
+```
+
+Use the matching frozen ModernBERT-large weights and embedding-only PCA/logistic
+head. The files are supplied locally. The scorer does no network fetches or GUI
+probes. Each record contains status, step, target IDs and elapsed time. Scored
+records include `p_stagnant` and the observation step IDs. Missing history or
+failed scoring is logged and verification continues. Live inputs use recorded
+actions and existing accessibility observations, with no proposed action at the
+boundary. Treat scores as experimental until calibrated on fusion trajectories.
+
 ## Optional OpenCode canary
 
 The remote launcher reads a local, untracked secret file. It must contain your

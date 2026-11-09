@@ -720,7 +720,7 @@ class StructAgent(LLMClient, ActionCompile, Actor, ActorBurstController,
         self._candidate_step = cand
 
     def _run_boundary_verify(self, outcomes, step_idx, env, *,
-                             dump_name, dump_targets):
+                             dump_name, dump_targets, observe_stagnation=False):
         """Shared boundary-verify core (actor-loop-exit reports + verify-on-DONE).
         Builds context from the candidate step, runs verify_milestone over ``outcomes``,
         marks verified ones on the ledger, and debug-dumps the verdicts."""
@@ -821,6 +821,9 @@ class StructAgent(LLMClient, ActionCompile, Actor, ActorBurstController,
             from mm_agents.structagent.core.final_audit.progressive import recover_pending
             unresolved = [self.ledger.get(v.outcome_id) for v in verdicts if not v.verified]
             unresolved = [o for o in unresolved if o is not None]
+            if observe_stagnation and unresolved and os.environ.get("FUSION_STAGNATION_SHADOW") == "1":
+                from mm_agents.structagent.core.final_audit.stagnation import record_shadow_score
+                record_shadow_score(self, step_idx, unresolved, _all_steps, cand)
             recover_pending(self, env, {}, step_idx, unresolved, 'boundary_insufficient')
             if logger:
                 logger.info("[Progressive] boundary step=%d recovered=%d/%d", step_idx,
@@ -920,7 +923,7 @@ class StructAgent(LLMClient, ActionCompile, Actor, ActorBurstController,
         verdicts = self._run_boundary_verify(
             pending, step_idx, env,
             dump_name=f"step_{step_idx:03d}_actor_burst_exit.json",
-            dump_targets=targets)
+            dump_targets=targets, observe_stagnation=True)
 
         if any(getattr(v, "error", False) for v in verdicts):
             lines.append("milestone_check: verifier unavailable or partially failed")
