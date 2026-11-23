@@ -1,0 +1,21 @@
+{
+  "head_file": "modernbert_large__causal_actions_and_observed_controls__embedding.npz",
+  "head_bytes": 70405,
+  "head_sha256": "74d06072aab2dcc6a907e9509e4c14003472a68c4168c0e7e68d2bea6e0b89f3",
+  "format": "NumPy NPZ; load with allow_pickle=False",
+  "classifier": "embedding-only PCA/logistic head",
+  "encoder": "answerdotai/ModernBERT-large",
+  "encoder_revision": "45bb4654a4d5aaff24dd11d4781fa46d39bf8c13",
+  "encoder_url": "https://huggingface.co/answerdotai/ModernBERT-large/tree/45bb4654a4d5aaff24dd11d4781fa46d39bf8c13",
+  "encoder_weight_file": "model.safetensors",
+  "encoder_weight_sha256": "44510fec5d3a81a1877f225637b869495f18e55f6f23a09abb9be0acc030295f",
+  "used_arrays": {
+    "embedding_mean": [1024],
+    "projection": [1024, 8],
+    "projection_scale": [8],
+    "beta": [9]
+  },
+  "additional_arrays_in_original_file": ["state_mean", "state_scale"],
+  "use": "Optional CPU stagnation shadow scoring; scores are recorded and do not change verification or decisions.",
+  "calibration_on_fusion_trajectories_evaluated": false
+}

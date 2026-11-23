@@ -10,8 +10,9 @@ The overlay preserves the upstream Apache-2.0 LICENSE and NOTICE. Modified
 upstream files add endpoint routing, bounded episode recovery, progressive
 verification hooks, and browser DOM timeout handling. Added files provide the
 OpenCode client, verification implementation, launchers, task-ID manifests and
-regression tests. Benchmark task definitions, VM images, model weights, raw
+regression tests. Benchmark task definitions, VM images, encoder/LLM weights, raw
 trajectories and private configuration are intentionally not redistributed here.
+The fitted stagnation classifier head is included separately under `heads/`.
 
 ## Prepare the source
 
@@ -77,11 +78,24 @@ Set these variables before invoking the local runner above:
 ```sh
 export FUSION_STAGNATION_SHADOW=1
 export FUSION_STAGNATION_MODEL_DIR=/absolute/path/to/modernbert_large
-export FUSION_STAGNATION_HEAD=/absolute/path/to/modernbert_large__causal_actions_and_observed_controls__embedding.npz
+export FUSION_STAGNATION_HEAD=/absolute/path/to/StateGuard/integrations/structagent/heads/modernbert_large__causal_actions_and_observed_controls__embedding.npz
 ```
 
-Use the matching frozen ModernBERT-large weights and embedding-only PCA/logistic
-head. The files are supplied locally. The scorer does no network fetches or GUI
+Use the included [embedding-only PCA/logistic classifier head](heads/modernbert_large__causal_actions_and_observed_controls__embedding.npz)
+(70,405 bytes). Its SHA-256 is
+`74d06072aab2dcc6a907e9509e4c14003472a68c4168c0e7e68d2bea6e0b89f3`.
+The setup script copies source code; keep the head at the StateGuard checkout
+path above, or explicitly copy it to your own model directory.
+
+Download the matching encoder from
+[answerdotai/ModernBERT-large, revision 45bb4654a4d5aaff24dd11d4781fa46d39bf8c13](https://huggingface.co/answerdotai/ModernBERT-large/tree/45bb4654a4d5aaff24dd11d4781fa46d39bf8c13).
+Keep `config.json`, `model.safetensors`, `special_tokens_map.json`,
+`tokenizer.json` and `tokenizer_config.json` together in the local encoder
+directory. The encoder weight SHA-256 and classifier array shapes are recorded
+in [heads/manifest.json](heads/manifest.json). Encoder and Qwen weights are
+downloaded separately; they are not included in this repository.
+
+The scorer loads these files locally and does no network fetches or GUI
 probes. Each record contains status, step, target IDs and elapsed time. Scored
 records include `p_stagnant` and the observation step IDs. Missing history or
 failed scoring is logged and verification continues. Live inputs use recorded
