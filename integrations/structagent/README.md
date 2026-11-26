@@ -67,6 +67,11 @@ historical local configuration.** No budget policy fix is claimed by this releas
 
 ## Optional stagnation shadow run
 
+Integration guides in Chinese:
+
+- [StructAgent fusion integration](SMALL_MODEL_README.md)
+- [Original StateGuard integration](../../docs/ORIGINAL_STATEGUARD_SMALL_MODEL_README.md)
+
 The local runner can score unresolved milestones at actor-burst exit before
 progressive verification. Scores are recorded in each task's
 `stagnation_shadow.jsonl`. This mode only observes. The verifier still runs
